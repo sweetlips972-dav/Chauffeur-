@@ -134,8 +134,15 @@ h3.sec{font-family:var(--fd);font-weight:600;font-size:18px;margin:2px 0 10px}
 .note{font-size:13px;color:var(--mute);margin:0}
 
 /* Services */
-.srow{display:grid;grid-template-columns:70px 1fr 1fr 58px;gap:6px;align-items:end;padding:8px 0;border-bottom:1px solid var(--line)}
+.srow{display:grid;grid-template-columns:70px minmax(0,1fr) minmax(0,1fr) 58px;gap:6px;align-items:end;padding:8px 0;border-bottom:1px solid var(--line)}
 .srow:last-child{border-bottom:0}
+.lrow{display:flex;align-items:center;gap:8px;margin-top:6px}
+.lseg{min-width:0}
+.lrow>span{font-size:11px;font-weight:800;color:var(--mute);width:82px;flex:none}
+.lseg{display:grid;grid-template-columns:1fr 1fr;gap:4px;flex:1}
+.lseg button,.twobtn{border:2px solid transparent;border-radius:10px;padding:7px 2px;font-weight:800;font-size:13px;background:var(--empty-bg);color:inherit}
+.lseg button[aria-pressed="true"],.twobtn[aria-pressed="true"]{border-color:var(--accent)}
+.twobtn{width:100%;margin-top:6px}
 .srow label{font-size:10px;font-weight:800;color:var(--mute);display:block;margin-bottom:2px}
 .srow input{width:100%;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 4px;font-size:14px;font-weight:700;text-align:center}
 .chip{display:inline-block;border-radius:10px;padding:6px 8px;font-weight:800;font-size:13px;background:hsl(var(--h,220) var(--cs) var(--cl));color:hsl(var(--h,220) 55% var(--ct));text-align:center}
@@ -509,10 +516,16 @@ function codeOf(k){var o=state.days[k];return (o&&o.c!==undefined)?o.c:BASE[k]}
 function tmin(s){if(!s)return null;var p=s.split(':');return +p[0]*60+(+p[1]||0)}
 function span(s,e,p){var a=tmin(s),b=tmin(e);if(a===null||b===null)return null;var d=b-a;if(d<=0)d+=1440;d-=(+p||0);return d<0?0:d}
 function fmt(min){if(min===null||min===undefined)return '–';var h=Math.floor(min/60),m=Math.round(min%60);if(m===60){h++;m=0}return h+'h'+(m?pad(m):'')}
+function svcKnown(s){if(!s)return false;if(s.two)return !!(s.s&&s.e&&s.s2&&s.e2);return !!(s.s&&s.e)}
+function svcMin(s){if(!s)return null;if(s.two){var a=span(s.s,s.e,0),b=span(s.s2,s.e2,0);if(a===null||b===null)return null;var t=a+b-(+s.p||0);return t<0?0:t}return span(s.s,s.e,s.p)}
+var LIEU={D:'dépôt',S:'station'};
+function lieuTxt(s){if(!s)return '';var o=[];
+  if(s.two){var x=(s.a?LIEU[s.a]:'?')+' → '+(s.b?LIEU[s.b]:'?'),y=(s.c2?LIEU[s.c2]:'?')+' → '+(s.d2?LIEU[s.d2]:'?');if(!s.a&&!s.b&&!s.c2&&!s.d2)return 'en deux parties';return 'en deux parties : '+x+', puis '+y}
+  if(s.a||s.b)return (s.a?LIEU[s.a]:'?')+' → '+(s.b?LIEU[s.b]:'?');return ''}
 function hoursOf(k){
   var o=state.days[k]||{}, c=codeOf(k);
   if(o.s&&o.e)return {min:span(o.s,o.e,o.p),known:true,own:true};
-  if(isService(c)){var s=state.svc[c];if(s&&s.s&&s.e)return {min:span(s.s,s.e,s.p),known:true};return {min:0,known:false};}
+  if(isService(c)){var s=state.svc[c];if(svcKnown(s))return {min:svcMin(s),known:true};return {min:0,known:false};}
   return {min:0,known:true};
 }
 function hueOf(c){
@@ -731,20 +744,31 @@ function viewHours(){
   main.onclick=function(e){var b=e.target.closest('.bar');if(b){curM=+b.getAttribute('data-m');setTab('mois','z')}};
 }
 
+function lieuBtns(c,f,v){return '<div class="lseg" data-lf="'+f+'">'+['D','S'].map(function(x){return '<button type="button" data-lv="'+x+'" aria-pressed="'+(v===x)+'">'+(x==='D'?'Dépôt':'Station')+'</button>'}).join('')+'</div>'}
+function svcRow(c,n){
+  var s=state.svc[c]||{};
+  var h='<div class="srow" data-c="'+esc(c)+'"><div><span class="chip" style="--h:'+hueOf(c)+'">'+esc(c)+'</span><div class="note" style="font-size:11px;margin-top:3px">'+n+' j</div></div>'+
+    '<div><label for="s_'+esc(c)+'">'+(s.two?'Début 1':'Début')+'</label><input id="s_'+esc(c)+'" type="time" data-f="s" value="'+esc(s.s||'')+'"></div>'+
+    '<div><label for="e_'+esc(c)+'">'+(s.two?'Fin 1':'Fin')+'</label><input id="e_'+esc(c)+'" type="time" data-f="e" value="'+esc(s.e||'')+'"></div>'+
+    '<div><label for="p_'+esc(c)+'">Pause min</label><input id="p_'+esc(c)+'" type="number" inputmode="numeric" min="0" step="5" data-f="p" value="'+esc(s.p||'')+'"></div>';
+  h+='<div class="lieux" style="grid-column:1/-1"><div class="lrow"><span>On commence</span>'+lieuBtns(c,'a',s.a)+'</div><div class="lrow"><span>On finit</span>'+lieuBtns(c,'b',s.b)+'</div></div>';
+  if(s.two){
+    h+='<div style="grid-column:1/-1"><div class="note" style="font-size:11px;font-weight:800">2ᵉ partie</div></div>'+
+      '<div style="grid-column:2"><label for="s2_'+esc(c)+'">Début 2</label><input id="s2_'+esc(c)+'" type="time" data-f="s2" value="'+esc(s.s2||'')+'"></div>'+
+      '<div><label for="e2_'+esc(c)+'">Fin 2</label><input id="e2_'+esc(c)+'" type="time" data-f="e2" value="'+esc(s.e2||'')+'"></div><div></div>'+
+      '<div class="lieux" style="grid-column:1/-1"><div class="lrow"><span>On reprend</span>'+lieuBtns(c,'c2',s.c2)+'</div><div class="lrow"><span>On finit</span>'+lieuBtns(c,'d2',s.d2)+'</div></div>';
+  }
+  h+='<div style="grid-column:1/-1"><button type="button" class="twobtn" data-two="1" aria-pressed="'+(!!s.two)+'">Service en deux parties</button></div>';
+  h+='<div class="hrs" style="grid-column:1/-1;text-align:right;padding:0" data-h>'+(svcKnown(s)?'Durée : '+fmt(svcMin(s)):'')+'</div></div>';
+  return h;
+}
 function viewServices(){
   var codes=allCodes();
   var h='<div class="stack"><div class="card"><h3 class="sec">Horaires de mes services</h3>'+
     '<p class="note">Saisissez une fois les horaires de chaque service : toutes les journées concernées sont calculées automatiquement.</p>'+(state.hideWarn?'<div class="row" style="margin-top:8px"><button class="btn ghost" id="wshow">Réafficher l’alerte horaires manquants</button></div>':'');
   var count={};
   Object.keys(BASE).forEach(function(k){var c=codeOf(k);if(isService(c))count[c]=(count[c]||0)+1});
-  codes.forEach(function(c){
-    var s=state.svc[c]||{};
-    h+='<div class="srow" data-c="'+esc(c)+'"><div><span class="chip" style="--h:'+hueOf(c)+'">'+esc(c)+'</span><div class="note" style="font-size:11px;margin-top:3px">'+(count[c]||0)+' j</div></div>'+
-      '<div><label for="s_'+esc(c)+'">Début</label><input id="s_'+esc(c)+'" type="time" data-f="s" value="'+esc(s.s||'')+'"></div>'+
-      '<div><label for="e_'+esc(c)+'">Fin</label><input id="e_'+esc(c)+'" type="time" data-f="e" value="'+esc(s.e||'')+'"></div>'+
-      '<div><label for="p_'+esc(c)+'">Pause min</label><input id="p_'+esc(c)+'" type="number" inputmode="numeric" min="0" step="5" data-f="p" value="'+esc(s.p||'')+'"></div>'+
-      '<div class="hrs" style="grid-column:1/-1;text-align:right;padding:0" data-h>'+(s.s&&s.e?'Durée : '+fmt(span(s.s,s.e,s.p)):'')+'</div></div>';
-  });
+  codes.forEach(function(c){h+=svcRow(c,count[c]||0)});
   h+='</div><div class="card"><h3 class="sec">Ajouter un service</h3><div class="row"><input class="inp" id="newc" placeholder="ex. 11_209" style="flex:1;min-width:120px" aria-label="Code du nouveau service"><button class="btn" id="addc">Ajouter</button></div></div>';
   if(TEMPLATE)h='<div class="stack"><div class="card"><h3 class="sec">Mon roulement</h3><p class="note" style="margin-bottom:10px">'+esc(state.profile.n||'Profil à compléter')+(state.profile.a?' · Agent '+esc(state.profile.a):'')+'</p><div class="row"><button class="btn" id="fillopen">Saisir ou modifier mon roulement</button><button class="btn ghost" id="profopen">Mon profil</button></div></div>'+h.slice('<div class="stack">'.length);
   h+=settingsCards()+'<div class="card"><h3 class="sec">Sauvegarde</h3><p class="note" style="margin-bottom:10px">Vos modifications, notes et horaires sont enregistrés automatiquement. Gardez une copie de sécurité si vous le souhaitez.</p>'+
@@ -755,6 +779,14 @@ function viewServices(){
   var fo=document.getElementById('fillopen');if(fo)fo.onclick=openFill;
   var po=document.getElementById('profopen');if(po)po.onclick=openWelcome;
   main.ontouchstart=main.ontouchend=null;main.onclick=null;
+  main.onclick=function(e){
+    var b=e.target.closest&&e.target.closest('.srow button');if(!b)return;
+    var row=b.closest('.srow'),c=row.getAttribute('data-c'),s=state.svc[c]||(state.svc[c]={});
+    if(b.hasAttribute('data-lv')){var f=b.parentNode.getAttribute('data-lf'),v=b.getAttribute('data-lv');s[f]=(s[f]===v)?'':v;
+      Array.prototype.forEach.call(b.parentNode.children,function(x){x.setAttribute('aria-pressed',String(s[f]===x.getAttribute('data-lv')))});scheduleSave();return}
+    if(b.hasAttribute('data-two')){s.two=!s.two;var n=0;Object.keys(BASE).forEach(function(k){if(codeOf(k)===c)n++});
+      var tmp=document.createElement('div');tmp.innerHTML=svcRow(c,n);row.parentNode.replaceChild(tmp.firstChild,row);scheduleSave()}
+  };
   wireSettings();
   var ws=document.getElementById('wshow');if(ws)ws.onclick=function(){state.hideWarn=false;scheduleSave();render()};
   main.oninput=function(e){
@@ -766,7 +798,7 @@ function viewServices(){
     var v=inp.value;
     if(inp.getAttribute('data-f')==='p')v=v===''?'':Math.max(0,parseInt(v,10)||0);
     s[inp.getAttribute('data-f')]=v;
-    row.querySelector('[data-h]').textContent=(s.s&&s.e)?'Durée : '+fmt(span(s.s,s.e,s.p)):'';
+    row.querySelector('[data-h]').textContent=svcKnown(s)?'Durée : '+fmt(svcMin(s)):'';
     scheduleSave();
   };
   document.getElementById('addc').onclick=function(){
@@ -835,7 +867,7 @@ function closeSheet(){
 }
 function draftHours(){
   if(draft.s&&draft.e)return {min:span(draft.s,draft.e,draft.p),src:'perso'};
-  if(isService(draft.c)){var s=state.svc[draft.c];if(s&&s.s&&s.e)return {min:span(s.s,s.e,s.p),src:'service'};return {min:null,src:'inconnu'}}
+  if(isService(draft.c)){var s=state.svc[draft.c];if(svcKnown(s))return {min:svcMin(s),src:'service'};return {min:null,src:'inconnu'}}
   return {min:0,src:'repos'};
 }
 function drawSheet(){
@@ -857,6 +889,8 @@ function drawSheet(){
     '<div><label for="de">Fin</label><input class="inp" id="de" type="time" value="'+esc(draft.e)+'"></div>'+
     '<div><label for="dp">Pause min</label><input class="inp" id="dp" type="number" inputmode="numeric" min="0" step="5" value="'+esc(draft.p)+'"></div></div>'+
     '<p class="note" id="dh" style="margin-top:6px"></p></div>';
+  var lt0=isService(draft.c)?lieuTxt(state.svc[draft.c]):'';
+  if(lt0)h+='<p class="note" style="margin-top:-2px">Ce service : '+esc(lt0)+'</p>';
   if(isService(draft.c)&&(base==='R'||base==='RH'))h+='<div><span class="badge">★ Repos travaillé</span></div>';
   h+='<div><label class="lab" for="dn">Note du jour</label><textarea class="inp" id="dn" placeholder="Retard, incident, remplacement, prime…">'+esc(draft.n)+'</textarea></div>'+
     '<div class="row"><button class="btn" id="ok" style="flex:1">Enregistrer</button><button class="btn ghost" id="no">Annuler</button></div>';
@@ -1279,7 +1313,7 @@ function balanceHtml(){
 function settingsCards(){
   var h='<div class="card"><h3 class="sec">Apparence</h3><p class="note" style="margin-bottom:10px">Choisissez le mode qui vous repose les yeux.</p><div class="thseg">'+[['auto','Automatique'],['light','Clair'],['dark','Sombre']].map(function(o){var on=(state.theme||'auto')===o[0];return '<button data-th="'+o[0]+'" class="'+(on?'on':'')+'" aria-pressed="'+on+'">'+o[1]+'</button>'}).join('')+'</div></div>'+
     '<div class="card"><h3 class="sec">Votre avis</h3><p class="note" style="margin-bottom:10px">Cette application évolue : notez chaque partie, dites ce que vous aimez, ce qui manque ou ce qui est en trop.</p><button class="btn" id="avisopen">Donner mon avis</button></div>'+
-    (TEMPLATE?'<div class="card"><h3 class="sec">Notice : comment ça marche</h3><ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Saisissez votre roulement vous-même (bouton « Saisir ou modifier mon roulement »)…</li><li>…ou photographiez votre planning et envoyez-le à David avec la carte « Mon planning en photo ».</li><li>David remplit vos mois et vous renvoie un texte de sauvegarde par message.</li><li>Copiez ce texte, puis collez-le dans la zone « Sauvegarde » en bas de cette page et touchez « Restaurer depuis ce texte » : votre planning apparaît.</li><li>Ensuite, servez-vous-en chaque jour : notes, tour du bus, assistant, bilans, congés.</li></ol><div class="row" style="margin-top:10px"><button class="btn ghost" id="gobk">Aller à la zone de collage</button><button class="btn ghost" id="rewel">Revoir l’accueil</button></div></div>':'')+(TEMPLATE?'<div class="card"><h3 class="sec">Mon planning en photo</h3><p class="note" style="margin-bottom:10px">Pas envie de tout saisir ? Photographiez votre planning et envoyez-le à David : il remplit vos mois pour vous.</p><button class="btn" id="scanopen">Envoyer mon planning en photo</button></div>':'')+
+    (TEMPLATE?'<div class="card"><h3 class="sec">Notice : comment ça marche</h3><ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Saisissez votre roulement vous-même (bouton « Saisir ou modifier mon roulement »)…</li><li>…ou photographiez votre planning et envoyez-le à David avec la carte « Mon planning en photo ».</li><li>David remplit vos mois et vous renvoie un texte de sauvegarde par message.</li><li>Copiez ce texte, puis collez-le dans la zone « Sauvegarde » en bas de cette page et touchez « Restaurer depuis ce texte » : votre planning apparaît.</li><li>Dans les horaires de vos services (Réglages), indiquez où vous commencez et finissez (dépôt ou station) et touchez « Service en deux parties » si vous reprenez après une coupure.</li><li>Ensuite, servez-vous-en chaque jour : notes, tour du bus, assistant, bilans, congés.</li></ol><div class="row" style="margin-top:10px"><button class="btn ghost" id="gobk">Aller à la zone de collage</button><button class="btn ghost" id="rewel">Revoir l’accueil</button></div></div>':'')+(TEMPLATE?'<div class="card"><h3 class="sec">Mon planning en photo</h3><p class="note" style="margin-bottom:10px">Pas envie de tout saisir ? Photographiez votre planning et envoyez-le à David : il remplit vos mois pour vous.</p><button class="btn" id="scanopen">Envoyer mon planning en photo</button></div>':'')+
     '<div class="card"><h3 class="sec">Congés et récupérations</h3><p class="note">Indiquez votre droit annuel en jours pour suivre ce qu’il vous reste. Laissez vide si vous ne voulez pas de compteur.</p>';
   allTypes().forEach(function(t){
     h+='<div class="srow" style="grid-template-columns:1fr 100px"><div><span class="chip">'+esc(t.l)+'</span><div class="note" style="font-size:11px;margin-top:3px">'+esc(t.c)+' · '+countCode(t.c)+' j posés</div></div><div><label for="q_'+esc(t.c)+'">Droit annuel</label><input id="q_'+esc(t.c)+'" type="number" inputmode="decimal" min="0" step="0.5" data-q="'+esc(t.c)+'" value="'+(state.quota[t.c]===undefined?'':esc(state.quota[t.c]))+'"></div></div>';
@@ -1464,7 +1498,8 @@ function dayDesc(k){
   var c=codeOf(k),o=state.days[k]||{},b=o.b||{},t;
   if(isService(c)){
     var hh=hoursOf(k),sv=state.svc[c]||{};t='service '+c;
-    if(hh.known){t+=', '+fmt(hh.min);var s1=o.s&&o.e?[o.s,o.e]:(sv.s&&sv.e?[sv.s,sv.e]:null);if(s1)t+=' ('+s1[0]+' à '+s1[1]+')'}
+    if(hh.known){t+=', '+fmt(hh.min);var s1=o.s&&o.e?[o.s,o.e]:(sv.s&&sv.e?[sv.s,sv.e]:null);if(s1)t+=' ('+(sv.two&&!(o.s&&o.e)?s1[0]+' à '+s1[1]+' puis '+sv.s2+' à '+sv.e2:s1[0]+' à '+s1[1])+')'}
+    var lt=lieuTxt(sv);if(lt)t+=', '+lt;
     else t+=' (horaires non renseignés)';
   }else if(c==='R')t='repos (R)';
   else if(c==='RH')t='repos RH, non échangeable';
