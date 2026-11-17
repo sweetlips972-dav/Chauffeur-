@@ -618,9 +618,9 @@ function busSvg(cl){
 }
 function driveHtml(){return '<span class="drive">'+busSvg()+'</span>'}
 function setSaved(txt,ok){var e=document.getElementById('saved');if(!ok&&/^(Enregistrement|Chargement)/.test(txt))e.innerHTML=driveHtml()+txt;else e.textContent=txt;e.className=ok?'ok':''}
-function serialize(){return JSON.stringify({v:2,year:YEAR,days:state.days,svc:state.svc,contacts:state.contacts,rem:state.rem,quota:state.quota,types:state.types,profile:state.profile,plan:state.plan,hideWarn:state.hideWarn})}
+function serialize(){return JSON.stringify({v:2,year:YEAR,days:state.days,svc:state.svc,contacts:state.contacts,rem:state.rem,quota:state.quota,types:state.types,profile:state.profile,plan:state.plan,hideWarn:state.hideWarn,theme:state.theme||'',alert:state.alert||0})}
 function applyData(txt){
-  try{var o=JSON.parse(txt);if(o&&o.days&&o.svc){state.days=o.days;state.svc=o.svc;state.contacts=Array.isArray(o.contacts)?o.contacts:null;state.rem=Array.isArray(o.rem)?o.rem:[];state.quota=o.quota||{};state.types=Array.isArray(o.types)?o.types:[];state.profile=(o.profile&&typeof o.profile==='object')?o.profile:{n:'',a:''};state.plan=(o.plan&&typeof o.plan==='object')?o.plan:{};state.hideWarn=!!o.hideWarn;rebuildBase();return true}}catch(e){}
+  try{var o=JSON.parse(txt);if(o&&o.days&&o.svc){state.days=o.days;state.svc=o.svc;state.contacts=Array.isArray(o.contacts)?o.contacts:null;state.rem=Array.isArray(o.rem)?o.rem:[];state.quota=o.quota||{};state.types=Array.isArray(o.types)?o.types:[];state.profile=(o.profile&&typeof o.profile==='object')?o.profile:{n:'',a:''};state.plan=(o.plan&&typeof o.plan==='object')?o.plan:{};state.hideWarn=!!o.hideWarn;state.theme=o.theme||state.theme||'';state.alert=+o.alert||state.alert||0;rebuildBase();return true}}catch(e){}
   return false;
 }
 function rebuildBase(){if(!TEMPLATE)return;Object.keys(BASE).forEach(function(k){BASE[k]='-'});Object.keys(state.plan).forEach(function(k){if(k in BASE)BASE[k]=state.plan[k]})}
@@ -697,7 +697,7 @@ function viewMonth(){
   if(TEMPLATE&&Object.keys(state.plan).length<60)h+='<div class="card welcome"><h3 class="sec">Complétez votre planning</h3><p class="note" style="margin-bottom:10px">Photographiez votre planning et envoyez-le à David : il remplit vos mois et vous le renvoie. Ou saisissez-le vous-même, quelques touches suffisent.</p><div class="row"><button class="btn" id="scango">Envoyer mon planning en photo</button><button class="btn ghost" id="fillgo">Saisir mon roulement</button></div></div>';
   if(todayKey&&isService(codeOf(todayKey))){
     var tb=(state.days[todayKey]||{}).b,td=!!(tb&&tb.st);
-    h+='<div class="card todaycard"><div><b>Aujourd’hui · service '+esc(codeOf(todayKey))+'</b><span>'+(td?'Tour du bus fait'+(tb.num?' (bus '+esc(tb.num)+')':''):'Tour du bus à faire')+'</span></div><button class="btn" id="tcb">'+(td?'Voir':'Faire le tour')+'</button></div>';
+    h+='<div class="card todaycard"><div><b>Aujourd’hui · service '+esc(codeOf(todayKey))+(dayCfg(todayKey).s?' · '+esc(dayCfg(todayKey).s):'')+'</b><span>'+(td?'Tour du bus fait'+(tb.num?' (bus '+esc(tb.num)+')':''):'Pensez au tour du bus')+'</span></div><button class="btn" id="tcb">'+(td?'Voir':'Faire le tour')+'</button></div>';
   }
   h+='<div class="mhead"><button class="round" id="prev" aria-label="Mois précédent">‹</button>'+
     '<h2>'+MONTHS[m]+'<span>'+YEAR+'</span></h2><button class="round" id="next" aria-label="Mois suivant">›</button></div>';
@@ -1327,14 +1327,15 @@ function periodInfo(p,i){
   return {keys:keys,label:label};
 }
 function reportFor(keys){
-  var R={min:0,worked:0,rest:0,dd:0,unknown:0,serv:0,ctrl:0,bus:{},noNum:0,inc:[],sig:[],notes:[],abs:{},absN:0};
+  var R={min:0,worked:0,rest:0,dd:0,unknown:0,serv:0,ctrl:0,bus:{},busK:{},bd:[],noNum:0,inc:[],sig:[],notes:[],abs:{},absN:0};
   keys.forEach(function(k){
     var c=codeOf(k),h=hoursOf(k),o=state.days[k]||{},b=o.b||{};
     R.min+=h.min;if(!h.known)R.unknown++;
     if(h.min>0||isService(c))R.worked++;else if(c==='R'||c==='RH')R.rest++;
     if(c==='DDD')R.dd++;
     if(isService(c)){R.serv++;if(b.st)R.ctrl++}
-    if(b.num)R.bus[b.num]=(R.bus[b.num]||0)+1;else if(isService(c))R.noNum++;
+    if(b.num){R.bus[b.num]=(R.bus[b.num]||0)+1;(R.busK[b.num]=R.busK[b.num]||[]).push(k)}else if(isService(c))R.noNum++;
+    if(b.num||(isService(c)&&b.st))R.bd.push({k:k,num:b.num||'',st:b.st||''});
     if(b.inc)R.inc.push({k:k,num:b.num,t:b.it||''});
     if(b.st==='sig')R.sig.push({k:k,num:b.num,tags:b.tags||[],n:b.n||'',ph:b.ph||[]});
     if(o.n)R.notes.push({k:k,t:o.n});
@@ -1349,6 +1350,7 @@ function reportText(label,R){
   if(R.absN)L.push('Jours posés : '+Object.keys(R.abs).map(function(c){return (typeOf(c)?typeOf(c).l:c)+' '+R.abs[c].length}).join(', '));
   var bs=Object.keys(R.bus).sort(function(a,b){return R.bus[b]-R.bus[a]});
   L.push('Bus conduits : '+(bs.length?bs.map(function(x){return x+' ('+R.bus[x]+' j)'}).join(', '):'aucun numéro renseigné'));
+  if(R.bd.length){L.push('','Jour par jour');R.bd.forEach(function(x){L.push('- '+dnum(x.k)+' : '+(x.num?'bus '+x.num:'bus non noté')+(x.st==='sig'?' (à signaler)':x.st==='ok'?' (RAS)':' (tour non fait)'))})}
   L.push('','Incidents ('+R.inc.length+')');
   R.inc.forEach(function(x){L.push('- '+dnum(x.k)+(x.num?' · bus '+x.num:'')+' : '+(x.t||'sans détail'))});
   L.push('','Bus à signaler ('+R.sig.length+')');
@@ -1375,7 +1377,8 @@ function viewBilan(){
     h+='<div class="card"><h3 class="sec">Heures par mois</h3><div class="bars">'+ms.map(function(a){return '<button class="bar" data-m="'+a[0]+'"><span>'+SHORT[a[0]]+'</span><span class="t"><i style="width:'+Math.round(a[1]/mx*100)+'%"></i></span><em>'+fmt(a[1])+'</em></button>'}).join('')+'</div></div>';
   }
   var bs=Object.keys(R.bus).sort(function(a,b){return R.bus[b]-R.bus[a]});
-  h+='<div class="card"><h3 class="sec">Bus conduits</h3>'+(bs.length?bs.map(function(x){return '<div class="busline"><span>Bus '+esc(x)+'</span><span>'+R.bus[x]+' jour'+(R.bus[x]>1?'s':'')+'</span></div>'}).join(''):'<p class="empty">Aucun numéro de bus renseigné sur cette période.</p>')+(R.noNum&&bs.length?'<p class="note" style="margin-top:8px">'+R.noNum+' service'+(R.noNum>1?'s':'')+' sans numéro de bus.</p>':'')+'</div>';
+  h+='<div class="card"><h3 class="sec">Bus conduits</h3>'+(bs.length?bs.map(function(x){return '<div class="busline"><span>Bus '+esc(x)+'</span><span>'+R.bus[x]+' jour'+(R.bus[x]>1?'s':'')+'</span></div><p class="note" style="margin:0 0 6px">'+R.busK[x].map(dnum).join(', ')+'</p>'}).join(''):'<p class="empty">Aucun numéro de bus renseigné sur cette période.</p>')+(R.noNum&&bs.length?'<p class="note" style="margin-top:8px">'+R.noNum+' service'+(R.noNum>1?'s':'')+' sans numéro de bus.</p>':'')+'</div>';
+  if(R.bd.length)h+='<div class="card"><h3 class="sec">Bus jour par jour ('+R.bd.length+')</h3>'+R.bd.map(function(x){return '<button class="li" data-k="'+x.k+'"><b>'+dnum(x.k)+'</b><span class="m">'+(x.num?'Bus '+esc(x.num):'Bus non noté')+'</span><p>'+(x.st==='sig'?'À signaler':x.st==='ok'?'Rien à signaler':'Tour du bus non fait')+'</p></button>'}).join('')+'</div>';
   var ac=Object.keys(R.abs);
   h+='<div class="card"><h3 class="sec">Congés et récupérations ('+R.absN+')</h3>'+(ac.length?ac.map(function(c){return '<div class="busline"><span>'+esc(typeOf(c)?typeOf(c).l:c)+'</span><span>'+R.abs[c].length+' jour'+(R.abs[c].length>1?'s':'')+'</span></div><p class="note" style="margin:0 0 6px">'+R.abs[c].map(dshort).join(', ')+'</p>'}).join(''):'<p class="empty">Aucun jour posé sur cette période.</p>')+balanceHtml()+'</div>';
   h+='<div class="card"><h3 class="sec">Incidents ('+R.inc.length+')</h3>'+(R.inc.length?R.inc.map(function(x){return '<button class="li" data-k="'+x.k+'"><b>'+dnum(x.k)+'</b><span class="m">'+(x.num?'Bus '+esc(x.num):'')+'</span><p>'+esc(x.t||'Sans détail')+'</p></button>'}).join(''):'<p class="empty">Aucun incident.</p>')+'</div>';
@@ -1439,8 +1442,9 @@ function balanceHtml(){
 /* ---------- réglages : congés, rappels ---------- */
 function settingsCards(){
   var h='<div class="card"><h3 class="sec">Apparence</h3><p class="note" style="margin-bottom:10px">Choisissez le mode qui vous repose les yeux.</p><div class="thseg">'+[['auto','Automatique'],['light','Clair'],['dark','Sombre']].map(function(o){var on=(state.theme||'auto')===o[0];return '<button data-th="'+o[0]+'" class="'+(on?'on':'')+'" aria-pressed="'+on+'">'+o[1]+'</button>'}).join('')+'</div></div>'+
+    '<div class="card"><h3 class="sec">Alerte tour du bus</h3><p class="note" style="margin-bottom:10px">Un rappel sonne avant chaque prise de service, même appli fermée. Il est créé dans le calendrier de votre téléphone.</p><span class="lab">Combien de temps avant ?</span><div class="tags" id="alm">'+[15,30,45,60].map(function(n){return '<button type="button" data-al="'+n+'" aria-pressed="'+((state.alert||30)===n)+'">'+n+' min</button>'}).join('')+'</div><div class="row" style="margin-top:10px"><button class="btn" id="alics">Créer les alertes</button></div><p class="note" id="alm2" style="margin-top:8px"></p></div>'+
     '<div class="card"><h3 class="sec">Votre avis</h3><p class="note" style="margin-bottom:10px">Cette application évolue : notez chaque partie, dites ce que vous aimez, ce qui manque ou ce qui est en trop.</p><button class="btn" id="avisopen">Donner mon avis</button></div>'+
-    (TEMPLATE?'<div class="card"><h3 class="sec">Notice : comment ça marche</h3><ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Saisissez votre roulement vous-même (bouton « Saisir ou modifier mon roulement »)…</li><li>…ou photographiez votre planning et envoyez-le à David avec la carte « Mon planning en photo ».</li><li>David remplit vos mois et vous renvoie un texte de sauvegarde par message.</li><li>Copiez ce texte, puis collez-le dans la zone « Sauvegarde » en bas de cette page et touchez « Restaurer depuis ce texte » : votre planning apparaît.</li><li>Dans les horaires de vos services (Réglages), indiquez où vous commencez et finissez (dépôt ou station) et touchez « Service en deux parties » si vous reprenez après une coupure. Pour le week-end et les jours fériés, ajoutez des horaires différents sous le service. Sur la fiche d’une journée (calendrier du mois), choisissez Habituel, Une fois, Deux fois ou Décalage ; le bouton « Appliquer à lundi–vendredi » répercute le choix sur les autres jours de la semaine. Pour une absence (maladie, vacances, enfant malade, congés spéciaux, formation…), touchez « Poser une absence ou un congé », choisissez le type et la date de fin : toute la période est posée d’un coup.</li><li>Ensuite, servez-vous-en chaque jour : notes, tour du bus, assistant, bilans, congés.</li></ol><div class="row" style="margin-top:10px"><button class="btn ghost" id="gobk">Aller à la zone de collage</button><button class="btn ghost" id="rewel">Revoir l’accueil</button></div></div>':'')+(TEMPLATE?'<div class="card"><h3 class="sec">Mon planning en photo</h3><p class="note" style="margin-bottom:10px">Pas envie de tout saisir ? Photographiez votre planning et envoyez-le à David : il remplit vos mois pour vous.</p><button class="btn" id="scanopen">Envoyer mon planning en photo</button></div>':'')+
+    (TEMPLATE?'<div class="card"><h3 class="sec">Notice : comment ça marche</h3><ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Saisissez votre roulement vous-même (bouton « Saisir ou modifier mon roulement »)…</li><li>…ou photographiez votre planning et envoyez-le à David avec la carte « Mon planning en photo ».</li><li>David remplit vos mois et vous renvoie un texte de sauvegarde par message.</li><li>Copiez ce texte, puis collez-le dans la zone « Sauvegarde » en bas de cette page et touchez « Restaurer depuis ce texte » : votre planning apparaît.</li><li>Dans les horaires de vos services (Réglages), indiquez où vous commencez et finissez (dépôt ou station) et touchez « Service en deux parties » si vous reprenez après une coupure. Pour le week-end et les jours fériés, ajoutez des horaires différents sous le service. Sur la fiche d’une journée (calendrier du mois), choisissez Habituel, Une fois, Deux fois ou Décalage ; le bouton « Appliquer à lundi–vendredi » répercute le choix sur les autres jours de la semaine. Pour une absence (maladie, vacances, enfant malade, congés spéciaux, formation…), touchez « Poser une absence ou un congé », choisissez le type et la date de fin : toute la période est posée d’un coup.</li><li>Dans le Bilan, « Bus conduits » et « Bus jour par jour » listent vos bus et leurs dates (utile en cas de litige). Dans Réglages, « Alerte tour du bus » crée un rappel dans le calendrier de votre téléphone avant chaque prise de service.</li><li>Ensuite, servez-vous-en chaque jour : notes, tour du bus, assistant, bilans, congés.</li></ol><div class="row" style="margin-top:10px"><button class="btn ghost" id="gobk">Aller à la zone de collage</button><button class="btn ghost" id="rewel">Revoir l’accueil</button></div></div>':'')+(TEMPLATE?'<div class="card"><h3 class="sec">Mon planning en photo</h3><p class="note" style="margin-bottom:10px">Pas envie de tout saisir ? Photographiez votre planning et envoyez-le à David : il remplit vos mois pour vous.</p><button class="btn" id="scanopen">Envoyer mon planning en photo</button></div>':'')+
     '<div class="card"><h3 class="sec">Congés et récupérations</h3><p class="note">Indiquez votre droit annuel en jours pour suivre ce qu’il vous reste. Laissez vide si vous ne voulez pas de compteur.</p>';
   allTypes().filter(function(t){return t.c==='CP'||t.c==='REC'||state.quota[t.c]!==undefined||countCode(t.c)>0||(state.types||[]).some(function(x){return x.c===t.c})}).forEach(function(t){
     h+='<div class="srow" style="display:grid;grid-template-columns:1fr 100px"><div><span class="chip">'+esc(t.l)+'</span><div class="note" style="font-size:11px;margin-top:3px">'+esc(t.c)+' · '+countCode(t.c)+' j posés</div></div><div><label for="q_'+esc(t.c)+'">Droit annuel</label><input id="q_'+esc(t.c)+'" type="number" inputmode="decimal" min="0" step="0.5" data-q="'+esc(t.c)+'" value="'+(state.quota[t.c]===undefined?'':esc(state.quota[t.c]))+'"></div></div>';
@@ -1450,9 +1454,31 @@ function settingsCards(){
   h+='<div class="card"><h3 class="sec">Mes rappels</h3>'+(rem.length?rem.map(function(r){return '<div class="remrow"><div><b>'+esc(r.t)+'</b><span>'+esc(labelFull(r.due))+'</span></div><button class="btn danger" data-rdel="'+esc(r.id)+'">Supprimer</button></div>'}).join(''):'<p class="empty">Aucun rappel.</p>')+'<p class="note" style="margin-top:8px">Les rappels s’affichent en haut de l’onglet Mois quand l’échéance approche. L’appli ne peut pas envoyer de notification quand elle est fermée.</p></div>';
   return h;
 }
+function icsEsc(t){return String(t).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n')}
+function makeAlerts(){
+  var msg=document.getElementById('alm2'),n=state.alert||30,today=todayFull(),L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Le Chauffeur//FR','CALSCALE:GREGORIAN','X-WR-CALNAME:Tour du bus'],cnt=0;
+  Object.keys(BASE).sort().forEach(function(k){
+    if(k<today)return;var c=codeOf(k);if(!isService(c))return;
+    var cf=dayCfg(k);if(!cf||!cf.s)return;
+    var t=tmin(cf.s);if(t===null)return;var st=t-n;if(st<0)st=0;
+    var hh=pad(Math.floor(st/60))+pad(st%60)+'00',he=pad(Math.floor((st+5)/60)%24)+pad((st+5)%60)+'00',d8=k.replace(/-/g,'');
+    var lt=lieuTxt(cf);
+    L.push('BEGIN:VEVENT','UID:tourbus-'+d8+'@lechauffeur','DTSTAMP:20260101T000000Z','DTSTART:'+d8+'T'+hh,'DTEND:'+d8+'T'+he,
+      'SUMMARY:'+icsEsc('Tour du bus · service '+c+' à '+cf.s),'DESCRIPTION:'+icsEsc('Pensez à faire le tour de votre bus.'+(lt?' '+lt+'.':'')),
+      'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Tour du bus','TRIGGER:PT0M','END:VALARM','END:VEVENT');cnt++;
+  });
+  L.push('END:VCALENDAR');
+  if(!cnt){msg.textContent='Aucun service à venir avec une heure de début : renseignez d’abord les horaires de vos services.';return}
+  var data=L.join('\r\n'),fn='tour-du-bus-alertes.ics';
+  function done(){msg.textContent=cnt+' alertes prêtes. Ouvrez le fichier pour les ajouter au calendrier (choisissez ou créez un calendrier « Tour du bus » pour pouvoir tout supprimer d’un coup).'}
+  if(window.claude&&window.claude.use){window.claude.use('downloads').then(function(d){if(!d){msg.textContent='Téléchargement indisponible ici.';return}return d.save({filename:fn,data:data}).then(done,function(){msg.textContent='Téléchargement annulé.'})})}
+  else{try{var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'text/calendar'}));a.download=fn;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500);done()}catch(e){msg.textContent='Téléchargement impossible sur cet appareil.'}}
+}
 function wireSettings(){
   main.querySelectorAll('[data-th]').forEach(function(b){b.onclick=function(){state.theme=b.getAttribute('data-th');scheduleSave();applyTheme();render()}});
   var ao=document.getElementById('avisopen');if(ao)ao.onclick=openAvis;
+  var alm=document.getElementById('alm');if(alm)alm.onclick=function(e){var b=e.target.closest('button');if(!b)return;state.alert=+b.getAttribute('data-al');Array.prototype.forEach.call(alm.children,function(x){x.setAttribute('aria-pressed',String(x===b))});scheduleSave()};
+  var ali=document.getElementById('alics');if(ali)ali.onclick=makeAlerts;
   var rw=document.getElementById('rewel');if(rw)rw.onclick=openChoice;
   var gb=document.getElementById('gobk');if(gb)gb.onclick=function(){var t=document.getElementById('bkt');if(t){t.scrollIntoView({block:'center'});t.focus()}};
   var so=document.getElementById('scanopen');if(so)so.onclick=openScan;
