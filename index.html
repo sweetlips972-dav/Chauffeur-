@@ -138,6 +138,8 @@ h3.sec{font-family:var(--fd);font-weight:600;font-size:18px;margin:2px 0 10px}
 .shead{display:flex;align-items:center;gap:10px}
 .sgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 70px;gap:6px;align-items:end}
 .srow:last-child{border-bottom:0}
+.abspanel{border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin-top:6px}
 .lrow{display:flex;align-items:center;gap:8px;margin-top:6px}
 .lseg{min-width:0}
 .lrow>span{font-size:11px;font-weight:800;color:var(--mute);width:82px;flex:none}
@@ -509,8 +511,10 @@ var now=new Date(); if(now.getFullYear()===YEAR)curM=now.getMonth();
 var todayKey=now.getFullYear()===YEAR?iso(now.getMonth(),now.getDate()):'';
 
 /* ---------- logique ---------- */
-var DEF_TYPES=[{c:'CP',l:'Congé posé'},{c:'REC',l:'Récupération'},{c:'ABS',l:'Autre absence'}];
-function allTypes(){return DEF_TYPES.concat(state.types||[])}
+var DEF_TYPES=[{c:'CP',l:'Congé posé (vacances)'},{c:'REC',l:'Récupération'},{c:'MAL',l:'Maladie'},{c:'ENF',l:'Enfant malade'},{c:'AT',l:'Accident du travail'},
+ {c:'PAT',l:'Congé paternité'},{c:'MATE',l:'Congé maternité'},{c:'SPE',l:'Congé spécial'},{c:'MAR',l:'Mariage ou PACS'},{c:'NAI',l:'Naissance ou adoption'},{c:'DEC',l:'Décès d’un proche'},{c:'DEM',l:'Déménagement'},
+ {c:'FOR',l:'Formation'},{c:'CFO',l:'Congé formation'},{c:'SAB',l:'Année sabbatique'},{c:'CSS',l:'Congé sans solde'},{c:'GRV',l:'Grève'},{c:'ABS',l:'Autre absence'}];
+function allTypes(){var have={};DEF_TYPES.forEach(function(t){have[t.c]=1});return DEF_TYPES.concat((state.types||[]).filter(function(t){return !have[t.c]}))}
 function typeOf(c){var a=allTypes();for(var i=0;i<a.length;i++)if(a[i].c===c)return a[i];return null}
 function isAbs(c){return !!c&&!!typeOf(c)}
 function isService(c){return !!c && c!=='-' && REST.indexOf(c)<0 && !isAbs(c)}
@@ -890,7 +894,7 @@ document.querySelectorAll('nav button').forEach(function(b){b.onclick=function()
 var veil=document.getElementById('veil'),sheet=document.getElementById('sheet'),editK=null,draft=null;
 function openDay(k){
   editK=k;var o=state.days[k]||{};
-  draft={c:codeOf(k),t:dayT(o),s:o.s||'',e:o.e||'',p:o.p===undefined?'':o.p,s2:o.s2||'',e2:o.e2||'',a:o.a||'',b:o.b||'',c2:o.c2||'',d2:o.d2||'',n:o.n||''};
+  draft={c:codeOf(k),t:dayT(o),s:o.s||'',e:o.e||'',p:o.p===undefined?'':o.p,s2:o.s2||'',e2:o.e2||'',a:o.a||'',b:o.b||'',c2:o.c2||'',d2:o.d2||'',n:o.n||'',ao:false,at:'CP',ae:'',ar:false};
   drawSheet();showVeil();
 }
 var closeTok=0;
@@ -918,9 +922,17 @@ function drawSheet(){
   if(isService(draft.c)||bb)h+='<button class="busbtn'+(bdone?' done':'')+'" id="bus"><span>Tour du bus</span><span>'+(bdone?(bb.st==='sig'?'À signaler':'RAS')+(bb.num?' · bus '+esc(bb.num):'')+' ›':'À faire ›')+'</span></button>';
   h+='<div><span class="lab">Ma journée</span><div class="quick" id="quick">'+
     ['R','RH','DDD','-'].map(function(c){return '<button data-c="'+c+'" aria-pressed="'+(draft.c===c)+'">'+(c==='-'?'Vide':c)+'</button>'}).join('')+'</div></div>';
-  h+='<div><label class="lab" for="csel">Ou un service, un congé, une récupération</label><select class="inp" id="csel"><option value="">Choisir…</option>'+
-    '<optgroup label="Congés et absences">'+allTypes().map(function(t){return '<option value="'+esc(t.c)+'"'+(draft.c===t.c?' selected':'')+'>'+esc(t.l)+' ('+esc(t.c)+')</option>'}).join('')+'</optgroup>'+
-    '<optgroup label="Services">'+codes.map(function(c){return '<option value="'+esc(c)+'"'+(draft.c===c?' selected':'')+'>'+esc(c)+'</option>'}).join('')+'</optgroup></select></div>';
+  h+='<div><label class="lab" for="csel">Ou un service</label><select class="inp" id="csel"><option value="">Choisir…</option>'+
+    codes.map(function(c){return '<option value="'+esc(c)+'"'+(draft.c===c?' selected':'')+'>'+esc(c)+'</option>'}).join('')+'</select></div>';
+  var curAbs=isAbs(draft.c)?typeOf(draft.c):null;
+  h+='<div><button type="button" class="btn ghost" id="absopen" style="width:100%;text-align:left">'+(curAbs?'Absence : '+esc(curAbs.l)+' · modifier':'Poser une absence ou un congé…')+'</button></div>';
+  if(draft.ao){
+    h+='<div class="abspanel"><span class="lab">Type d’absence</span><div class="tags" id="atype">'+allTypes().map(function(x){return '<button type="button" data-at="'+esc(x.c)+'" aria-pressed="'+(draft.at===x.c)+'">'+esc(x.l)+'</button>'}).join('')+'</div>'+
+      '<div class="f2" style="grid-template-columns:1fr 1fr;margin-top:8px"><div><label for="afrom">Du</label><input class="inp" id="afrom" type="date" value="'+esc(editK)+'" disabled></div><div><label for="ato">Jusqu’au</label><input class="inp" id="ato" type="date" min="'+esc(editK)+'" max="'+YEAR+'-12-31" value="'+esc(draft.ae||editK)+'"></div></div>'+
+      '<label class="chk"><input type="checkbox" id="arest"'+(draft.ar?' checked':'')+'> Inclure mes jours de repos</label>'+
+      '<p class="note" id="acount" style="margin-top:4px"></p>'+
+      '<div class="row"><button type="button" class="btn" id="aok">Poser</button><button type="button" class="btn ghost" id="ano2">Fermer</button></div></div>';
+  }
   h+='<div class="row"><button class="btn ghost" id="orig">Remettre le planning d’origine</button></div>';
   var sv=svcFor(draft.c,editK)||{};
   if(isService(draft.c)){
@@ -962,6 +974,15 @@ function drawSheet(){
   Array.prototype.forEach.call(sheet.querySelectorAll('.lseg[data-lf]'),function(g){g.onclick=function(e){var b=e.target.closest('button');if(!b)return;var f=g.getAttribute('data-lf'),v=b.getAttribute('data-lv');draft[f]=(draft[f]===v)?'':v;Array.prototype.forEach.call(g.children,function(x){x.setAttribute('aria-pressed',String(draft[f]===x.getAttribute('data-lv')))})}});
   var bus=document.getElementById('bus');if(bus)bus.onclick=function(){saveDay(true);openCtrl(editK)};
   var wk=document.getElementById('wk');if(wk)wk.onclick=applyWeek;
+  var ao=document.getElementById('absopen');if(ao)ao.onclick=function(){keepInputs();draft.ao=!draft.ao;if(draft.ao&&isAbs(draft.c))draft.at=draft.c;drawSheet()};
+  var aty=document.getElementById('atype');if(aty)aty.onclick=function(e){var b=e.target.closest('button');if(!b)return;draft.at=b.getAttribute('data-at');Array.prototype.forEach.call(aty.children,function(x){x.setAttribute('aria-pressed',String(x===b))})};
+  var ato=document.getElementById('ato'),aro=document.getElementById('arest');
+  function updAc(){var el=document.getElementById('acount');if(!el)return;var ks=absKeys();el.textContent=ks.length+' jour'+(ks.length>1?'s':'')+(draft.ar?'':' (repos non comptés)')}
+  if(ato)ato.oninput=function(){draft.ae=ato.value;updAc()};
+  if(aro)aro.onchange=function(){draft.ar=aro.checked;updAc()};
+  updAc();
+  var aok=document.getElementById('aok');if(aok)aok.onclick=applyAbs;
+  var an2=document.getElementById('ano2');if(an2)an2.onclick=function(){draft.ao=false;keepInputs();drawSheet()};
   document.getElementById('ok').onclick=function(){saveDay()};
   document.getElementById('no').onclick=closeSheet;
 }
@@ -997,6 +1018,27 @@ function saveDay(keepOpen){
   scheduleSave();
   if(keepOpen===true)return;
   closeSheet();render();
+}
+function absKeys(){
+  var out=[],end=draft.ae||editK;if(end<editK)end=editK;
+  var d=mkDate(editK),e=mkDate(end);
+  for(;d<=e&&d.getFullYear()===YEAR;d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1)){
+    var k=YEAR+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+    if(k!==editK&&!draft.ar&&(BASE[k]==='R'||BASE[k]==='RH'))continue;
+    out.push(k);
+  }
+  return out;
+}
+function applyAbs(){
+  keepInputs();
+  var ks=absKeys();
+  ks.forEach(function(k){
+    var old=state.days[k]||{},o={};if(old.b)o.b=old.b;
+    if(k===editK){if(draft.n.trim())o.n=draft.n.trim()}else if(old.n)o.n=old.n;
+    if(draft.at!==BASE[k])o.c=draft.at;
+    state.days[k]=o;
+  });
+  scheduleSave();closeSheet();render();
 }
 function applyWeek(){
   keepInputs();
@@ -1398,10 +1440,10 @@ function balanceHtml(){
 function settingsCards(){
   var h='<div class="card"><h3 class="sec">Apparence</h3><p class="note" style="margin-bottom:10px">Choisissez le mode qui vous repose les yeux.</p><div class="thseg">'+[['auto','Automatique'],['light','Clair'],['dark','Sombre']].map(function(o){var on=(state.theme||'auto')===o[0];return '<button data-th="'+o[0]+'" class="'+(on?'on':'')+'" aria-pressed="'+on+'">'+o[1]+'</button>'}).join('')+'</div></div>'+
     '<div class="card"><h3 class="sec">Votre avis</h3><p class="note" style="margin-bottom:10px">Cette application évolue : notez chaque partie, dites ce que vous aimez, ce qui manque ou ce qui est en trop.</p><button class="btn" id="avisopen">Donner mon avis</button></div>'+
-    (TEMPLATE?'<div class="card"><h3 class="sec">Notice : comment ça marche</h3><ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Saisissez votre roulement vous-même (bouton « Saisir ou modifier mon roulement »)…</li><li>…ou photographiez votre planning et envoyez-le à David avec la carte « Mon planning en photo ».</li><li>David remplit vos mois et vous renvoie un texte de sauvegarde par message.</li><li>Copiez ce texte, puis collez-le dans la zone « Sauvegarde » en bas de cette page et touchez « Restaurer depuis ce texte » : votre planning apparaît.</li><li>Dans les horaires de vos services (Réglages), indiquez où vous commencez et finissez (dépôt ou station) et touchez « Service en deux parties » si vous reprenez après une coupure. Pour le week-end et les jours fériés, ajoutez des horaires différents sous le service. Sur la fiche d’une journée (calendrier du mois), choisissez Habituel, Une fois, Deux fois ou Décalage ; le bouton « Appliquer à lundi–vendredi » répercute le choix sur les autres jours de la semaine.</li><li>Ensuite, servez-vous-en chaque jour : notes, tour du bus, assistant, bilans, congés.</li></ol><div class="row" style="margin-top:10px"><button class="btn ghost" id="gobk">Aller à la zone de collage</button><button class="btn ghost" id="rewel">Revoir l’accueil</button></div></div>':'')+(TEMPLATE?'<div class="card"><h3 class="sec">Mon planning en photo</h3><p class="note" style="margin-bottom:10px">Pas envie de tout saisir ? Photographiez votre planning et envoyez-le à David : il remplit vos mois pour vous.</p><button class="btn" id="scanopen">Envoyer mon planning en photo</button></div>':'')+
+    (TEMPLATE?'<div class="card"><h3 class="sec">Notice : comment ça marche</h3><ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Saisissez votre roulement vous-même (bouton « Saisir ou modifier mon roulement »)…</li><li>…ou photographiez votre planning et envoyez-le à David avec la carte « Mon planning en photo ».</li><li>David remplit vos mois et vous renvoie un texte de sauvegarde par message.</li><li>Copiez ce texte, puis collez-le dans la zone « Sauvegarde » en bas de cette page et touchez « Restaurer depuis ce texte » : votre planning apparaît.</li><li>Dans les horaires de vos services (Réglages), indiquez où vous commencez et finissez (dépôt ou station) et touchez « Service en deux parties » si vous reprenez après une coupure. Pour le week-end et les jours fériés, ajoutez des horaires différents sous le service. Sur la fiche d’une journée (calendrier du mois), choisissez Habituel, Une fois, Deux fois ou Décalage ; le bouton « Appliquer à lundi–vendredi » répercute le choix sur les autres jours de la semaine. Pour une absence (maladie, vacances, enfant malade, congés spéciaux, formation…), touchez « Poser une absence ou un congé », choisissez le type et la date de fin : toute la période est posée d’un coup.</li><li>Ensuite, servez-vous-en chaque jour : notes, tour du bus, assistant, bilans, congés.</li></ol><div class="row" style="margin-top:10px"><button class="btn ghost" id="gobk">Aller à la zone de collage</button><button class="btn ghost" id="rewel">Revoir l’accueil</button></div></div>':'')+(TEMPLATE?'<div class="card"><h3 class="sec">Mon planning en photo</h3><p class="note" style="margin-bottom:10px">Pas envie de tout saisir ? Photographiez votre planning et envoyez-le à David : il remplit vos mois pour vous.</p><button class="btn" id="scanopen">Envoyer mon planning en photo</button></div>':'')+
     '<div class="card"><h3 class="sec">Congés et récupérations</h3><p class="note">Indiquez votre droit annuel en jours pour suivre ce qu’il vous reste. Laissez vide si vous ne voulez pas de compteur.</p>';
-  allTypes().forEach(function(t){
-    h+='<div class="srow" style="grid-template-columns:1fr 100px"><div><span class="chip">'+esc(t.l)+'</span><div class="note" style="font-size:11px;margin-top:3px">'+esc(t.c)+' · '+countCode(t.c)+' j posés</div></div><div><label for="q_'+esc(t.c)+'">Droit annuel</label><input id="q_'+esc(t.c)+'" type="number" inputmode="decimal" min="0" step="0.5" data-q="'+esc(t.c)+'" value="'+(state.quota[t.c]===undefined?'':esc(state.quota[t.c]))+'"></div></div>';
+  allTypes().filter(function(t){return t.c==='CP'||t.c==='REC'||state.quota[t.c]!==undefined||countCode(t.c)>0||(state.types||[]).some(function(x){return x.c===t.c})}).forEach(function(t){
+    h+='<div class="srow" style="display:grid;grid-template-columns:1fr 100px"><div><span class="chip">'+esc(t.l)+'</span><div class="note" style="font-size:11px;margin-top:3px">'+esc(t.c)+' · '+countCode(t.c)+' j posés</div></div><div><label for="q_'+esc(t.c)+'">Droit annuel</label><input id="q_'+esc(t.c)+'" type="number" inputmode="decimal" min="0" step="0.5" data-q="'+esc(t.c)+'" value="'+(state.quota[t.c]===undefined?'':esc(state.quota[t.c]))+'"></div></div>';
   });
   h+='<div class="row" style="margin-top:12px"><input class="inp" id="ntc" placeholder="Code (RTT…)" style="flex:1;min-width:90px" aria-label="Code du nouveau type"><input class="inp" id="ntl" placeholder="Nom du jour" style="flex:2;min-width:120px" aria-label="Nom du nouveau type"><button class="btn" id="ntadd">Ajouter</button></div><p class="note" id="ntm" style="margin-top:6px"></p></div>';
   var rem=(state.rem||[]).slice().sort(function(a,b){return a.due<b.due?-1:1});
@@ -1764,7 +1806,7 @@ function ansRemind(when,raw){
   return {lines:['Créer ce rappel ?'],head:true};
 }
 function ansPose(q,when){
-  var type='CP';if(/recup/.test(q))type='REC';else if(/absence/.test(q))type='ABS';
+  var type='CP';if(/recup/.test(q))type='REC';else if(/enfant malade/.test(q))type='ENF';else if(/maladie|arret/.test(q))type='MAL';else if(/paternit/.test(q))type='PAT';else if(/formation/.test(q))type='FOR';else if(/absence/.test(q))type='ABS';
   askPose={keys:when.keys.slice(),type:type,opt:'none',date:''};
   var lbl=poseLabel(askPose.keys);
   return {lines:['Poser '+lbl+' ?'],head:true,speak:'Poser '+lbl+' ?'};
