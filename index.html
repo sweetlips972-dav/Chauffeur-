@@ -134,7 +134,9 @@ h3.sec{font-family:var(--fd);font-weight:600;font-size:18px;margin:2px 0 10px}
 .note{font-size:13px;color:var(--mute);margin:0}
 
 /* Services */
-.srow{display:grid;grid-template-columns:70px minmax(0,1fr) minmax(0,1fr) 58px;gap:6px;align-items:end;padding:8px 0;border-bottom:1px solid var(--line)}
+.srow{padding:12px 0;border-bottom:1px solid var(--line)}
+.shead{display:flex;align-items:center;gap:10px}
+.sgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 70px;gap:6px;align-items:end}
 .srow:last-child{border-bottom:0}
 .lrow{display:flex;align-items:center;gap:8px;margin-top:6px}
 .lseg{min-width:0}
@@ -518,6 +520,18 @@ function span(s,e,p){var a=tmin(s),b=tmin(e);if(a===null||b===null)return null;v
 function fmt(min){if(min===null||min===undefined)return '–';var h=Math.floor(min/60),m=Math.round(min%60);if(m===60){h++;m=0}return h+'h'+(m?pad(m):'')}
 function svcKnown(s){if(!s)return false;if(s.two)return !!(s.s&&s.e&&s.s2&&s.e2);return !!(s.s&&s.e)}
 function svcMin(s){if(!s)return null;if(s.two){var a=span(s.s,s.e,0),b=span(s.s2,s.e2,0);if(a===null||b===null)return null;var t=a+b-(+s.p||0);return t<0?0:t}return span(s.s,s.e,s.p)}
+var FER=null;
+function easter(y){var a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;return new Date(y,mo-1,da)}
+function feries(){
+  if(FER)return FER;FER={};var e=easter(YEAR);
+  function add(dt,n){FER[YEAR+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate())]=n}
+  function pl(n){return new Date(e.getFullYear(),e.getMonth(),e.getDate()+n)}
+  add(new Date(YEAR,0,1),'Jour de l’an');add(pl(1),'Lundi de Pâques');add(new Date(YEAR,4,1),'Fête du travail');add(new Date(YEAR,4,8),'Victoire 1945');
+  add(pl(39),'Ascension');add(pl(50),'Lundi de Pentecôte');add(new Date(YEAR,6,14),'Fête nationale');add(new Date(YEAR,7,15),'Assomption');
+  add(new Date(YEAR,10,1),'Toussaint');add(new Date(YEAR,10,11),'Armistice');add(new Date(YEAR,11,25),'Noël');return FER;
+}
+function dayKind(k){var g=new Date(+k.slice(0,4),+k.slice(5,7)-1,+k.slice(8)).getDay();return (g===0||g===6||feries()[k])?'W':'S'}
+function svcFor(c,k){var sv=state.svc[c];if(!sv)return sv;if(k&&dayKind(k)==='W'&&sv.w&&svcKnown(sv.w))return sv.w;return sv}
 function mkCfg(o,sv,t){
   sv=sv||{};o=o||{};if(!t)return sv;
   var p=(o.p!==undefined&&o.p!=='')?o.p:sv.p;
@@ -525,7 +539,7 @@ function mkCfg(o,sv,t){
   return {two:false,s:o.s||(sv.two?'':sv.s),e:o.e||(sv.two?'':sv.e),p:p,a:o.a||sv.a,b:o.b||sv.b};
 }
 function dayT(o){return o.t||((o.s&&o.e)?'D':'')}
-function dayCfg(k){var o=state.days[k]||{},c=codeOf(k);return mkCfg(o,state.svc[c],isService(c)?dayT(o):'')}
+function dayCfg(k){var o=state.days[k]||{},c=codeOf(k);return mkCfg(o,svcFor(c,k),isService(c)?dayT(o):'')}
 var LIEU={D:'dépôt',S:'station'};
 function lieuTxt(s){if(!s)return '';var o=[];
   if(s.two){var x=(s.a?LIEU[s.a]:'?')+' → '+(s.b?LIEU[s.b]:'?'),y=(s.c2?LIEU[s.c2]:'?')+' → '+(s.d2?LIEU[s.d2]:'?');if(!s.a&&!s.b&&!s.c2&&!s.d2)return 'en deux parties';return 'en deux parties : '+x+', puis '+y}
@@ -534,7 +548,7 @@ function hoursOf(k){
   var o=state.days[k]||{}, c=codeOf(k);
   if(isService(c)&&o.t){var cf=dayCfg(k);return svcKnown(cf)?{min:svcMin(cf),known:true,own:true}:{min:0,known:false}}
   if(o.s&&o.e)return {min:span(o.s,o.e,o.p),known:true,own:true};
-  if(isService(c)){var s=state.svc[c];if(svcKnown(s))return {min:svcMin(s),known:true};return {min:0,known:false};}
+  if(isService(c)){var s=svcFor(c,k);if(svcKnown(s))return {min:svcMin(s),known:true};return {min:0,known:false};}
   return {min:0,known:true};
 }
 function hueOf(c){
@@ -754,22 +768,34 @@ function viewHours(){
 }
 
 function lieuBtns(c,f,v){return '<div class="lseg" data-lf="'+f+'">'+['D','S'].map(function(x){return '<button type="button" data-lv="'+x+'" aria-pressed="'+(v===x)+'">'+(x==='D'?'Dépôt':'Station')+'</button>'}).join('')+'</div>'}
+function svcBlock(c,s,w){
+  var q=w?'w':'',e=esc(c);
+  var h='<div class="blk" data-blk="'+q+'"><div class="sgrid">'+
+    '<div><label for="'+q+'s_'+e+'">'+(s.two?'Début 1':'Début')+'</label><input id="'+q+'s_'+e+'" type="time" data-f="s" value="'+esc(s.s||'')+'"></div>'+
+    '<div><label for="'+q+'e_'+e+'">'+(s.two?'Fin 1':'Fin')+'</label><input id="'+q+'e_'+e+'" type="time" data-f="e" value="'+esc(s.e||'')+'"></div>'+
+    '<div><label for="'+q+'p_'+e+'">Pause min</label><input id="'+q+'p_'+e+'" type="number" inputmode="numeric" min="0" step="5" data-f="p" value="'+esc(s.p||'')+'"></div></div>';
+  h+='<div class="lrow"><span>On commence</span>'+lieuBtns(c,'a',s.a)+'</div><div class="lrow"><span>On finit</span>'+lieuBtns(c,'b',s.b)+'</div>';
+  if(s.two){
+    h+='<div class="note" style="font-size:11px;font-weight:800;margin-top:8px">2ᵉ partie</div><div class="sgrid" style="margin-top:4px">'+
+      '<div><label for="'+q+'s2_'+e+'">Début 2</label><input id="'+q+'s2_'+e+'" type="time" data-f="s2" value="'+esc(s.s2||'')+'"></div>'+
+      '<div><label for="'+q+'e2_'+e+'">Fin 2</label><input id="'+q+'e2_'+e+'" type="time" data-f="e2" value="'+esc(s.e2||'')+'"></div><div></div></div>'+
+      '<div class="lrow"><span>On reprend</span>'+lieuBtns(c,'c2',s.c2)+'</div><div class="lrow"><span>On finit</span>'+lieuBtns(c,'d2',s.d2)+'</div>';
+  }
+  h+='<button type="button" class="twobtn" data-two="1" aria-pressed="'+(!!s.two)+'">Service en deux parties</button>';
+  h+='<div class="hrs" style="text-align:right;padding:0" data-h>'+(svcKnown(s)?'Durée : '+fmt(svcMin(s)):'')+'</div></div>';
+  return h;
+}
 function svcRow(c,n){
   var s=state.svc[c]||{};
-  var h='<div class="srow" data-c="'+esc(c)+'"><div><span class="chip" style="--h:'+hueOf(c)+'">'+esc(c)+'</span><div class="note" style="font-size:11px;margin-top:3px">'+n+' j</div></div>'+
-    '<div><label for="s_'+esc(c)+'">'+(s.two?'Début 1':'Début')+'</label><input id="s_'+esc(c)+'" type="time" data-f="s" value="'+esc(s.s||'')+'"></div>'+
-    '<div><label for="e_'+esc(c)+'">'+(s.two?'Fin 1':'Fin')+'</label><input id="e_'+esc(c)+'" type="time" data-f="e" value="'+esc(s.e||'')+'"></div>'+
-    '<div><label for="p_'+esc(c)+'">Pause min</label><input id="p_'+esc(c)+'" type="number" inputmode="numeric" min="0" step="5" data-f="p" value="'+esc(s.p||'')+'"></div>';
-  h+='<div class="lieux" style="grid-column:1/-1"><div class="lrow"><span>On commence</span>'+lieuBtns(c,'a',s.a)+'</div><div class="lrow"><span>On finit</span>'+lieuBtns(c,'b',s.b)+'</div></div>';
-  if(s.two){
-    h+='<div style="grid-column:1/-1"><div class="note" style="font-size:11px;font-weight:800">2ᵉ partie</div></div>'+
-      '<div style="grid-column:2"><label for="s2_'+esc(c)+'">Début 2</label><input id="s2_'+esc(c)+'" type="time" data-f="s2" value="'+esc(s.s2||'')+'"></div>'+
-      '<div><label for="e2_'+esc(c)+'">Fin 2</label><input id="e2_'+esc(c)+'" type="time" data-f="e2" value="'+esc(s.e2||'')+'"></div><div></div>'+
-      '<div class="lieux" style="grid-column:1/-1"><div class="lrow"><span>On reprend</span>'+lieuBtns(c,'c2',s.c2)+'</div><div class="lrow"><span>On finit</span>'+lieuBtns(c,'d2',s.d2)+'</div></div>';
+  var h='<div class="srow" data-c="'+esc(c)+'"><div class="shead"><span class="chip" style="--h:'+hueOf(c)+'">'+esc(c)+'</span><span class="note" style="font-size:11px">'+n+' j</span></div>'+
+    '<div class="note" style="font-size:11px;font-weight:800;margin:6px 0 2px">Lundi au vendredi</div>'+svcBlock(c,s,false);
+  if(s.w){
+    h+='<div class="note" style="font-size:11px;font-weight:800;margin:12px 0 2px">Samedi, dimanche et jours fériés</div><p class="note" style="font-size:11px;margin:0 0 4px">Tant que ce n’est pas rempli, ce sont les horaires de la semaine.</p>'+svcBlock(c,s.w,true)+
+      '<button type="button" class="twobtn" data-wdel="1" style="margin-top:8px">Retirer (mêmes horaires qu’en semaine)</button>';
+  }else{
+    h+='<button type="button" class="twobtn" data-wadd="1" style="margin-top:10px">Horaires différents le week-end et les jours fériés</button>';
   }
-  h+='<div style="grid-column:1/-1"><button type="button" class="twobtn" data-two="1" aria-pressed="'+(!!s.two)+'">Service en deux parties</button></div>';
-  h+='<div class="hrs" style="grid-column:1/-1;text-align:right;padding:0" data-h>'+(svcKnown(s)?'Durée : '+fmt(svcMin(s)):'')+'</div></div>';
-  return h;
+  return h+'</div>';
 }
 function viewServices(){
   var codes=allCodes();
@@ -790,11 +816,14 @@ function viewServices(){
   main.ontouchstart=main.ontouchend=null;main.onclick=null;
   main.onclick=function(e){
     var b=e.target.closest&&e.target.closest('.srow button');if(!b)return;
-    var row=b.closest('.srow'),c=row.getAttribute('data-c'),s=state.svc[c]||(state.svc[c]={});
+    var row=b.closest('.srow'),c=row.getAttribute('data-c'),s0=state.svc[c]||(state.svc[c]={}),blk=b.closest('.blk');
+    var s=(blk&&blk.getAttribute('data-blk')==='w')?(s0.w||(s0.w={})):s0;
+    function redraw(){var n=0;Object.keys(BASE).forEach(function(k){if(codeOf(k)===c)n++});var tmp=document.createElement('div');tmp.innerHTML=svcRow(c,n);row.parentNode.replaceChild(tmp.firstChild,row);scheduleSave()}
     if(b.hasAttribute('data-lv')){var f=b.parentNode.getAttribute('data-lf'),v=b.getAttribute('data-lv');s[f]=(s[f]===v)?'':v;
       Array.prototype.forEach.call(b.parentNode.children,function(x){x.setAttribute('aria-pressed',String(s[f]===x.getAttribute('data-lv')))});scheduleSave();return}
-    if(b.hasAttribute('data-two')){s.two=!s.two;var n=0;Object.keys(BASE).forEach(function(k){if(codeOf(k)===c)n++});
-      var tmp=document.createElement('div');tmp.innerHTML=svcRow(c,n);row.parentNode.replaceChild(tmp.firstChild,row);scheduleSave()}
+    if(b.hasAttribute('data-two')){s.two=!s.two;redraw();return}
+    if(b.hasAttribute('data-wadd')){s0.w={};redraw();return}
+    if(b.hasAttribute('data-wdel')){delete s0.w;redraw()}
   };
   wireSettings();
   var ws=document.getElementById('wshow');if(ws)ws.onclick=function(){state.hideWarn=false;scheduleSave();render()};
@@ -802,12 +831,12 @@ function viewServices(){
     var inp=e.target;
     if(inp.getAttribute('data-q')){var qv=inp.value===''?'':Math.max(0,parseFloat(inp.value)||0);if(qv==='')delete state.quota[inp.getAttribute('data-q')];else state.quota[inp.getAttribute('data-q')]=qv;scheduleSave();return}
     if(!inp.getAttribute('data-f'))return;
-    var row=inp.closest('.srow'),c=row.getAttribute('data-c');
-    var s=state.svc[c]||(state.svc[c]={});
+    var row=inp.closest('.srow'),c=row.getAttribute('data-c'),blk=inp.closest('.blk');
+    var s0=state.svc[c]||(state.svc[c]={}),s=(blk&&blk.getAttribute('data-blk')==='w')?(s0.w||(s0.w={})):s0;
     var v=inp.value;
     if(inp.getAttribute('data-f')==='p')v=v===''?'':Math.max(0,parseInt(v,10)||0);
     s[inp.getAttribute('data-f')]=v;
-    row.querySelector('[data-h]').textContent=svcKnown(s)?'Durée : '+fmt(svcMin(s)):'';
+    blk.querySelector('[data-h]').textContent=svcKnown(s)?'Durée : '+fmt(svcMin(s)):'';
     scheduleSave();
   };
   document.getElementById('addc').onclick=function(){
@@ -875,9 +904,9 @@ function closeSheet(){
   setTimeout(function(){if(tok===closeTok){veil.classList.remove('open','closing')}},230);
 }
 function draftHours(){
-  if(isService(draft.c)&&draft.t){var cf=mkCfg(draft,state.svc[draft.c],draft.t);return svcKnown(cf)?{min:svcMin(cf),src:'perso'}:{min:null,src:'saisir'}}
+  if(isService(draft.c)&&draft.t){var cf=mkCfg(draft,svcFor(draft.c,editK),draft.t);return svcKnown(cf)?{min:svcMin(cf),src:'perso'}:{min:null,src:'saisir'}}
   if(draft.s&&draft.e)return {min:span(draft.s,draft.e,draft.p),src:'perso'};
-  if(isService(draft.c)){var s=state.svc[draft.c];if(svcKnown(s))return {min:svcMin(s),src:'service'};return {min:null,src:'inconnu'}}
+  if(isService(draft.c)){var s=svcFor(draft.c,editK);if(svcKnown(s))return {min:svcMin(s),src:'service'};return {min:null,src:'inconnu'}}
   return {min:0,src:'repos'};
 }
 function drawSheet(){
@@ -893,7 +922,7 @@ function drawSheet(){
     '<optgroup label="Congés et absences">'+allTypes().map(function(t){return '<option value="'+esc(t.c)+'"'+(draft.c===t.c?' selected':'')+'>'+esc(t.l)+' ('+esc(t.c)+')</option>'}).join('')+'</optgroup>'+
     '<optgroup label="Services">'+codes.map(function(c){return '<option value="'+esc(c)+'"'+(draft.c===c?' selected':'')+'>'+esc(c)+'</option>'}).join('')+'</optgroup></select></div>';
   h+='<div class="row"><button class="btn ghost" id="orig">Remettre le planning d’origine</button></div>';
-  var sv=state.svc[draft.c]||{};
+  var sv=svcFor(draft.c,editK)||{};
   if(isService(draft.c)){
     var T=[['','Habituel'],['1','Une fois'],['2','Deux fois'],['D','Décalage']];
     h+='<div><span class="lab">Type de service</span><div class="lseg" style="grid-template-columns:repeat(4,1fr)" id="dtype">'+T.map(function(x){return '<button type="button" data-t="'+x[0]+'" aria-pressed="'+(draft.t===x[0])+'">'+x[1]+'</button>'}).join('')+'</div></div>';
@@ -916,6 +945,10 @@ function drawSheet(){
     '<div><label for="dp">Pause min</label><input class="inp" id="dp" type="number" inputmode="numeric" min="0" step="5" value="'+esc(draft.p)+'"></div></div>'+
     '<p class="note" id="dh" style="margin-top:6px"></p></div>';
   }
+  var fer=feries()[editK];
+  if(fer)h+='<p class="note" style="margin-top:-2px">Jour férié : '+esc(fer)+(isService(draft.c)?' · horaires de week-end/férié si renseignés.':'')+'</p>';
+  else if(isService(draft.c)&&dayKind(editK)==='W')h+='<p class="note" style="margin-top:-2px">Week-end : horaires de week-end si renseignés.</p>';
+  if(isService(draft.c)&&dayKind(editK)==='S')h+='<div class="row"><button class="btn ghost" id="wk">Appliquer à lundi–vendredi de cette semaine</button></div><p class="note" id="wkm" style="margin-top:-4px"></p>';
   if(isService(draft.c)&&(base==='R'||base==='RH'))h+='<div><span class="badge">★ Repos travaillé</span></div>';
   h+='<div><label class="lab" for="dn">Note du jour</label><textarea class="inp" id="dn" placeholder="Retard, incident, remplacement, prime…">'+esc(draft.n)+'</textarea></div>'+
     '<div class="row"><button class="btn" id="ok" style="flex:1">Enregistrer</button><button class="btn ghost" id="no">Annuler</button></div>';
@@ -928,6 +961,7 @@ function drawSheet(){
   var dty=document.getElementById('dtype');if(dty)dty.onclick=function(e){var b=e.target.closest('button');if(!b)return;keepInputs();draft.t=b.getAttribute('data-t');drawSheet()};
   Array.prototype.forEach.call(sheet.querySelectorAll('.lseg[data-lf]'),function(g){g.onclick=function(e){var b=e.target.closest('button');if(!b)return;var f=g.getAttribute('data-lf'),v=b.getAttribute('data-lv');draft[f]=(draft[f]===v)?'':v;Array.prototype.forEach.call(g.children,function(x){x.setAttribute('aria-pressed',String(draft[f]===x.getAttribute('data-lv')))})}});
   var bus=document.getElementById('bus');if(bus)bus.onclick=function(){saveDay(true);openCtrl(editK)};
+  var wk=document.getElementById('wk');if(wk)wk.onclick=applyWeek;
   document.getElementById('ok').onclick=function(){saveDay()};
   document.getElementById('no').onclick=closeSheet;
 }
@@ -944,20 +978,40 @@ function updateDh(){
     h.src==='service'?'Horaires du service '+draft.c+' : '+fmt(h.min):
     h.src==='saisir'?'Saisissez les horaires de cette journée.':h.src==='inconnu'?'Horaires du service '+draft.c+' non renseignés (onglet Réglages).':'Aucune heure comptée.';
 }
+function dayRecord(d,k,old,note){
+  var o={};
+  if(old.b)o.b=old.b;
+  if(d.c!==BASE[k])o.c=d.c;
+  if(isService(d.c)&&d.t){
+    o.t=d.t;['s','e','s2','e2','a','b','c2','d2'].forEach(function(f){if(d[f]&&(d.t==='2'||(f!=='s2'&&f!=='e2'&&f!=='c2'&&f!=='d2')))o[f]=d[f]});
+    if(d.p!=='')o.p=d.p;
+  }else if(d.s&&d.e){o.s=d.s;o.e=d.e;if(d.p!=='')o.p=d.p}
+  if(note&&note.trim())o.n=note.trim();
+  return o;
+}
+function setDay(k,o){if(Object.keys(o).length)state.days[k]=o;else delete state.days[k]}
 function saveDay(keepOpen){
   keepInputs();
-  var k=editK,o={},old=state.days[k]||{};
-  if(old.b)o.b=old.b;
-  if(draft.c!==BASE[k])o.c=draft.c;
-  if(isService(draft.c)&&draft.t){
-    o.t=draft.t;['s','e','s2','e2','a','b','c2','d2'].forEach(function(f){if(draft[f]&&(draft.t==='2'||(f!=='s2'&&f!=='e2'&&f!=='c2'&&f!=='d2')))o[f]=draft[f]});
-    if(draft.p!=='')o.p=draft.p;
-  }else if(draft.s&&draft.e){o.s=draft.s;o.e=draft.e;if(draft.p!=='')o.p=draft.p}
-  if(draft.n.trim())o.n=draft.n.trim();
-  if(Object.keys(o).length)state.days[k]=o;else delete state.days[k];
+  var k=editK;
+  setDay(k,dayRecord(draft,k,state.days[k]||{},draft.n));
   scheduleSave();
   if(keepOpen===true)return;
   closeSheet();render();
+}
+function applyWeek(){
+  keepInputs();
+  var dt=mkDate(editK),dow=(dt.getDay()+6)%7,n=0;
+  for(var i=0;i<5;i++){
+    var d=new Date(dt.getFullYear(),dt.getMonth(),dt.getDate()-dow+i);
+    if(d.getFullYear()!==YEAR)continue;
+    var k=YEAR+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+    if(k===editK||dayKind(k)!=='S')continue;
+    if(codeOf(k)!==draft.c&&BASE[k]!==BASE[editK])continue;
+    var old=state.days[k]||{};
+    setDay(k,dayRecord(draft,k,old,old.n||''));n++;
+  }
+  saveDay(true);scheduleSave();render();
+  var m=document.getElementById('wkm');if(m)m.textContent=n?'Appliqué à '+n+' autre'+(n>1?'s':'')+' jour'+(n>1?'s':'')+' de la semaine (même service).':'Aucun autre jour de cette semaine avec ce service.';
 }
 veil.addEventListener('click',function(e){if(e.target===veil)closeSheet()});
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&veil.classList.contains('open')){if(lb.classList.contains('open'))return;closeSheet()}});
@@ -1344,7 +1398,7 @@ function balanceHtml(){
 function settingsCards(){
   var h='<div class="card"><h3 class="sec">Apparence</h3><p class="note" style="margin-bottom:10px">Choisissez le mode qui vous repose les yeux.</p><div class="thseg">'+[['auto','Automatique'],['light','Clair'],['dark','Sombre']].map(function(o){var on=(state.theme||'auto')===o[0];return '<button data-th="'+o[0]+'" class="'+(on?'on':'')+'" aria-pressed="'+on+'">'+o[1]+'</button>'}).join('')+'</div></div>'+
     '<div class="card"><h3 class="sec">Votre avis</h3><p class="note" style="margin-bottom:10px">Cette application évolue : notez chaque partie, dites ce que vous aimez, ce qui manque ou ce qui est en trop.</p><button class="btn" id="avisopen">Donner mon avis</button></div>'+
-    (TEMPLATE?'<div class="card"><h3 class="sec">Notice : comment ça marche</h3><ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Saisissez votre roulement vous-même (bouton « Saisir ou modifier mon roulement »)…</li><li>…ou photographiez votre planning et envoyez-le à David avec la carte « Mon planning en photo ».</li><li>David remplit vos mois et vous renvoie un texte de sauvegarde par message.</li><li>Copiez ce texte, puis collez-le dans la zone « Sauvegarde » en bas de cette page et touchez « Restaurer depuis ce texte » : votre planning apparaît.</li><li>Dans les horaires de vos services (Réglages), indiquez où vous commencez et finissez (dépôt ou station) et touchez « Service en deux parties » si vous reprenez après une coupure. Sur la fiche d’une journée (calendrier du mois), choisissez Habituel, Une fois, Deux fois ou Décalage, avec les heures et les lieux de ce jour-là.</li><li>Ensuite, servez-vous-en chaque jour : notes, tour du bus, assistant, bilans, congés.</li></ol><div class="row" style="margin-top:10px"><button class="btn ghost" id="gobk">Aller à la zone de collage</button><button class="btn ghost" id="rewel">Revoir l’accueil</button></div></div>':'')+(TEMPLATE?'<div class="card"><h3 class="sec">Mon planning en photo</h3><p class="note" style="margin-bottom:10px">Pas envie de tout saisir ? Photographiez votre planning et envoyez-le à David : il remplit vos mois pour vous.</p><button class="btn" id="scanopen">Envoyer mon planning en photo</button></div>':'')+
+    (TEMPLATE?'<div class="card"><h3 class="sec">Notice : comment ça marche</h3><ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Saisissez votre roulement vous-même (bouton « Saisir ou modifier mon roulement »)…</li><li>…ou photographiez votre planning et envoyez-le à David avec la carte « Mon planning en photo ».</li><li>David remplit vos mois et vous renvoie un texte de sauvegarde par message.</li><li>Copiez ce texte, puis collez-le dans la zone « Sauvegarde » en bas de cette page et touchez « Restaurer depuis ce texte » : votre planning apparaît.</li><li>Dans les horaires de vos services (Réglages), indiquez où vous commencez et finissez (dépôt ou station) et touchez « Service en deux parties » si vous reprenez après une coupure. Pour le week-end et les jours fériés, ajoutez des horaires différents sous le service. Sur la fiche d’une journée (calendrier du mois), choisissez Habituel, Une fois, Deux fois ou Décalage ; le bouton « Appliquer à lundi–vendredi » répercute le choix sur les autres jours de la semaine.</li><li>Ensuite, servez-vous-en chaque jour : notes, tour du bus, assistant, bilans, congés.</li></ol><div class="row" style="margin-top:10px"><button class="btn ghost" id="gobk">Aller à la zone de collage</button><button class="btn ghost" id="rewel">Revoir l’accueil</button></div></div>':'')+(TEMPLATE?'<div class="card"><h3 class="sec">Mon planning en photo</h3><p class="note" style="margin-bottom:10px">Pas envie de tout saisir ? Photographiez votre planning et envoyez-le à David : il remplit vos mois pour vous.</p><button class="btn" id="scanopen">Envoyer mon planning en photo</button></div>':'')+
     '<div class="card"><h3 class="sec">Congés et récupérations</h3><p class="note">Indiquez votre droit annuel en jours pour suivre ce qu’il vous reste. Laissez vide si vous ne voulez pas de compteur.</p>';
   allTypes().forEach(function(t){
     h+='<div class="srow" style="grid-template-columns:1fr 100px"><div><span class="chip">'+esc(t.l)+'</span><div class="note" style="font-size:11px;margin-top:3px">'+esc(t.c)+' · '+countCode(t.c)+' j posés</div></div><div><label for="q_'+esc(t.c)+'">Droit annuel</label><input id="q_'+esc(t.c)+'" type="number" inputmode="decimal" min="0" step="0.5" data-q="'+esc(t.c)+'" value="'+(state.quota[t.c]===undefined?'':esc(state.quota[t.c]))+'"></div></div>';
