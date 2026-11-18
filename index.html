@@ -1730,7 +1730,7 @@ function viewEquipe(){
           if(cf&&cf.s&&cf.e)tx+=' · '+cf.s+'–'+cf.e+(cf.two&&cf.s2?' puis '+cf.s2+'–'+cf.e2:'');
           var lt=lieuTxt(cf);if(lt)tx+=' · '+lt;
           t=tx;efh.textContent='Ce jour-là dans votre planning : '+tx;
-        }else efh.textContent='Ce jour-là, vous n’avez pas de service dans votre planning.';        }else efh.textContent='Ce jour-là, vous n’avez pas de service dans votre planning.';
+        }else efh.textContent='Ce jour-là, vous n’avez pas de service dans votre planning.';
       }else if(k)efh.textContent='Aucun planning enregistré pour cette date dans cette version : ajoutez votre planning dans Réglages.';
       if(t&&(!efp.value||efp.getAttribute('data-auto')==='1')){efp.value=t;efp.setAttribute('data-auto','1')}
     };
