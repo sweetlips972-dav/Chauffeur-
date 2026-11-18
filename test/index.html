@@ -159,6 +159,12 @@ h3.sec{font-family:var(--fd);font-weight:600;font-size:18px;margin:2px 0 10px}
 textarea.inp{resize:vertical;min-height:90px}
 
 /* Sheet */
+.memrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.memck{flex:none;width:30px;height:30px;border-radius:9px;border:2px solid var(--line);background:var(--card,#fff);font-weight:800;font-size:16px;color:#fff;cursor:pointer}
+.memck[aria-pressed="true"]{background:#2fb36b;border-color:#2fb36b}
+.memt{flex:1;min-width:0;overflow-wrap:anywhere}
+.memrow.done .memt{text-decoration:line-through;opacity:.55}
+.memx{flex:none;border:0;background:none;font-size:22px;color:var(--muted,#888);cursor:pointer;padding:4px 8px}
 #veil{position:fixed;inset:0;background:rgba(10,12,30,.5);display:none;align-items:flex-end;justify-content:center;z-index:10}
 #veil.open{display:flex}
 #sheet{background:var(--card);width:100%;max-width:560px;max-height:92%;overflow-y:auto;border-radius:26px 26px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom) + 18px);display:flex;flex-direction:column;gap:12px}
@@ -497,7 +503,7 @@ RAW.forEach(function(line,m){
   for(var d=1;d<=dim(m);d++)BASE[iso(m,d)]=TEMPLATE?'-':(out[d-1]||'-');
 });
 
-var state={days:{},svc:{},contacts:null,rem:[],quota:{},types:[],profile:{n:'',a:''},plan:{},hideWarn:false,maint:{n:'Maintenance',t:'',e:''}};
+var state={days:{},svc:{},contacts:null,rem:[],quota:{},types:[],profile:{n:'',a:''},plan:{},hideWarn:false,maint:{n:'Maintenance',t:'',e:''},memo:[],guide:[]};
 var SEED_CONTACTS=[
  {id:'k1',n:'Exploitation 1',r:'Exploitation',t:'06 73 67 35 74'},
  {id:'k2',n:'Exploitation 2',r:'Exploitation',t:'06 31 75 49 93'},
@@ -621,9 +627,9 @@ function busSvg(cl){
 }
 function driveHtml(){return '<span class="drive">'+busSvg()+'</span>'}
 function setSaved(txt,ok){var e=document.getElementById('saved');if(!ok&&/^(Enregistrement|Chargement)/.test(txt))e.innerHTML=driveHtml()+txt;else e.textContent=txt;e.className=ok?'ok':''}
-function serialize(){return JSON.stringify({v:2,year:YEAR,days:state.days,svc:state.svc,contacts:state.contacts,rem:state.rem,quota:state.quota,types:state.types,profile:state.profile,plan:state.plan,hideWarn:state.hideWarn,maint:state.maint,theme:state.theme||'',alert:state.alert||0})}
+function serialize(){return JSON.stringify({v:2,year:YEAR,days:state.days,svc:state.svc,contacts:state.contacts,rem:state.rem,quota:state.quota,types:state.types,profile:state.profile,plan:state.plan,hideWarn:state.hideWarn,maint:state.maint,memo:state.memo,guide:state.guide,theme:state.theme||'',alert:state.alert||0})}
 function applyData(txt){
-  try{var o=JSON.parse(txt);if(o&&o.days&&o.svc){state.days=o.days;state.svc=o.svc;state.contacts=Array.isArray(o.contacts)?o.contacts:null;state.rem=Array.isArray(o.rem)?o.rem:[];state.quota=o.quota||{};state.types=Array.isArray(o.types)?o.types:[];state.profile=(o.profile&&typeof o.profile==='object')?Object.assign({},state.profile,o.profile):{n:'',a:''};state.plan=(o.plan&&typeof o.plan==='object')?o.plan:{};state.hideWarn=!!o.hideWarn;state.maint=(o.maint&&typeof o.maint==='object')?Object.assign({n:'Maintenance',t:'',e:''},o.maint):{n:'Maintenance',t:'',e:''};state.theme=o.theme||state.theme||'';state.alert=+o.alert||state.alert||0;rebuildBase();return true}}catch(e){}
+  try{var o=JSON.parse(txt);if(o&&o.days&&o.svc){state.days=o.days;state.svc=o.svc;state.contacts=Array.isArray(o.contacts)?o.contacts:null;state.rem=Array.isArray(o.rem)?o.rem:[];state.quota=o.quota||{};state.types=Array.isArray(o.types)?o.types:[];state.profile=(o.profile&&typeof o.profile==='object')?Object.assign({},state.profile,o.profile):{n:'',a:''};state.plan=(o.plan&&typeof o.plan==='object')?o.plan:{};state.hideWarn=!!o.hideWarn;state.maint=(o.maint&&typeof o.maint==='object')?Object.assign({n:'Maintenance',t:'',e:''},o.maint):{n:'Maintenance',t:'',e:''};state.memo=Array.isArray(o.memo)?o.memo:[];state.guide=Array.isArray(o.guide)?o.guide:[];state.theme=o.theme||state.theme||'';state.alert=+o.alert||state.alert||0;rebuildBase();return true}}catch(e){}
   return false;
 }
 function rebuildBase(){if(!TEMPLATE)return;Object.keys(BASE).forEach(function(k){BASE[k]='-'});Object.keys(state.plan).forEach(function(k){if(k in BASE)BASE[k]=state.plan[k]})}
@@ -814,7 +820,7 @@ function viewServices(){
   codes.forEach(function(c){h+=svcRow(c,count[c]||0)});
   h+='</div><div class="card"><h3 class="sec">Ajouter un service</h3><div class="row"><input class="inp" id="newc" placeholder="ex. 11_209" style="flex:1;min-width:120px" aria-label="Code du nouveau service"><button class="btn" id="addc">Ajouter</button></div></div>';
   if(TEMPLATE)h='<div class="stack"><div class="card"><h3 class="sec">Mon roulement</h3><p class="note" style="margin-bottom:10px">'+esc(state.profile.n||'Profil à compléter')+(state.profile.a?' · Agent '+esc(state.profile.a):'')+'</p><div class="row"><button class="btn" id="fillopen">Saisir ou modifier mon roulement</button><button class="btn ghost" id="profopen">Mon profil</button></div></div>'+h.slice('<div class="stack">'.length);
-  h=h.replace('<div class="stack">','<div class="stack">'+ficheCard());
+  h=h.replace('<div class="stack">','<div class="stack">'+ficheCard()+toolsCard());
   h+=settingsCards()+'<div class="card"><h3 class="sec">Sauvegarde</h3><p class="note" style="margin-bottom:10px">Vos modifications, notes et horaires sont enregistrés automatiquement. Gardez une copie de sécurité si vous le souhaitez.</p>'+
     '<div class="row"><button class="btn ghost" id="bk">Afficher la sauvegarde</button><button class="btn ghost" id="cp">Copier</button><button class="btn ghost" id="dl">Télécharger</button></div>'+
     '<textarea class="inp" id="bkt" style="margin-top:10px" aria-label="Texte de sauvegarde" placeholder="Collez ici une sauvegarde pour la restaurer"></textarea>'+
@@ -823,6 +829,8 @@ function viewServices(){
   var fo=document.getElementById('fillopen');if(fo)fo.onclick=openFill;
   var po=document.getElementById('profopen');if(po)po.onclick=openFiche;
   var fi=document.getElementById('fiche');if(fi)fi.onclick=openFiche;
+  var mo=document.getElementById('memoopen');if(mo)mo.onclick=function(){openMemo()};
+  var go=document.getElementById('guideopen');if(go)go.onclick=function(){openGuide()};
   main.ontouchstart=main.ontouchend=null;main.onclick=null;
   main.onclick=function(e){
     var b=e.target.closest&&e.target.closest('.srow button');if(!b)return;
@@ -1146,9 +1154,11 @@ function drawCtrl(){
   h+='<div><button class="tgl" id="cinc" aria-pressed="'+ctrl.inc+'"><span>Incident pendant le service</span><span>'+(ctrl.inc?'Oui':'Non')+'</span></button></div>';
   if(ctrl.inc)h+='<div><label class="lab" for="cit">Que s’est-il passé ?</label><textarea class="inp" id="cit" placeholder="Heure, lieu, ce qui s’est passé…">'+esc(ctrl.it)+'</textarea></div>';
   if(ctrl.st==='sig'||ctrl.inc)h+='<div class="row"><button class="btn" id="cmt" style="flex:1">Envoyer à la maintenance</button></div><div class="row"><button class="btn ghost" id="csh" style="flex:1">Envoyer à quelqu’un d’autre</button></div>';
+  if(TEMPLATE)h+='<div class="row"><button class="btn ghost" id="ccs" style="flex:1">Laisser une consigne aux collègues</button></div>';
   h+='<div class="row"><button class="btn" id="cok" style="flex:1">Enregistrer</button><button class="btn ghost" id="cno">Annuler</button></div>';
   sheet.innerHTML=h;
   var ab=document.getElementById('anbox');if(ab)ab.onclick=function(e){var b=e.target.closest('[data-an]');if(b)anAct(b.getAttribute('data-an'),b.getAttribute('data-v'))};
+  var ccs=document.getElementById('ccs');if(ccs)ccs.onclick=function(){keepCtrl();var tx=[];if(ctrl.tags.length)tx.push(ctrl.tags.join(', '));if(ctrl.n.trim())tx.push(ctrl.n.trim());closeSheet();eq.sub='bus';eq.pform={open:true,titre:ctrl.num||'',texte:tx.join(' : ')};eq.st='init';setTab('equipe','z')};
   var cmt=document.getElementById('cmt');if(cmt)cmt.onclick=function(){drawMaint()};
   var csh=document.getElementById('csh');if(csh)csh.onclick=function(){drawShare({title:'Constat bus'+(ctrl.num?' '+ctrl.num:''),subject:'Constat bus '+(ctrl.num||''),text:constatText(),ph:ctrl.ph,back:drawCtrl})};
   sheet.querySelector('.state2').onclick=function(e){var b=e.target.closest('button');if(!b)return;keepCtrl();ctrl.st=b.getAttribute('data-st');if(ctrl.st==='ok')ctrl.tags=[];drawCtrl()};
@@ -1499,7 +1509,7 @@ function settingsCards(){
   var h='<div class="card"><h3 class="sec">Apparence</h3><p class="note" style="margin-bottom:10px">Choisissez le mode qui vous repose les yeux.</p><div class="thseg">'+[['auto','Automatique'],['light','Clair'],['dark','Sombre']].map(function(o){var on=(state.theme||'auto')===o[0];return '<button data-th="'+o[0]+'" class="'+(on?'on':'')+'" aria-pressed="'+on+'">'+o[1]+'</button>'}).join('')+'</div></div>'+
     '<div class="card"><h3 class="sec">Alerte tour du bus</h3><p class="note" style="margin-bottom:10px">Un rappel sonne avant chaque prise de service, même appli fermée. Il est créé dans le calendrier de votre téléphone.</p><span class="lab">Combien de temps avant ?</span><div class="tags" id="alm">'+[15,30,45,60].map(function(n){return '<button type="button" data-al="'+n+'" aria-pressed="'+((state.alert||30)===n)+'">'+n+' min</button>'}).join('')+'</div><div class="row" style="margin-top:10px"><button class="btn" id="alics">Créer les alertes</button></div><p class="note" id="alm2" style="margin-top:8px"></p></div>'+
     '<div class="card"><h3 class="sec">Votre avis</h3><p class="note" style="margin-bottom:10px">Cette application évolue : notez chaque partie, dites ce que vous aimez, ce qui manque ou ce qui est en trop.</p><button class="btn" id="avisopen">Donner mon avis</button></div>'+
-    (TEMPLATE?'<div class="card"><h3 class="sec">Notice : comment ça marche</h3><ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Saisissez votre roulement vous-même (bouton « Saisir ou modifier mon roulement »)…</li><li>…ou photographiez votre planning et envoyez-le à David avec la carte « Mon planning en photo ».</li><li>David remplit vos mois et vous renvoie un texte de sauvegarde par message.</li><li>Copiez ce texte, puis collez-le dans la zone « Sauvegarde » en bas de cette page et touchez « Restaurer depuis ce texte » : votre planning apparaît.</li><li>Dans les horaires de vos services (Réglages), indiquez où vous commencez et finissez (dépôt ou station) et touchez « Service en deux parties » si vous reprenez après une coupure. Pour le week-end et les jours fériés, ajoutez des horaires différents sous le service. Sur la fiche d’une journée (calendrier du mois), choisissez Habituel, Une fois, Deux fois ou Décalage ; le bouton « Appliquer à lundi–vendredi » répercute le choix sur les autres jours de la semaine. Pour une absence (maladie, vacances, enfant malade, congés spéciaux, formation…), touchez « Poser une absence ou un congé », choisissez le type et la date de fin : toute la période est posée d’un coup.</li><li>Au tour du bus, si le bus est « À signaler » ou en cas d’incident, touchez « Envoyer à la maintenance » : indiquez une fois le numéro ou le mail de la maintenance, puis envoyez le constat par WhatsApp, SMS ou mail (les photos partent avec « Partager avec les photos »).</li><li>Dans le Bilan, « Bus conduits » et « Bus jour par jour » listent vos bus et leurs dates (utile en cas de litige). Dans Réglages, « Alerte tour du bus » crée un rappel dans le calendrier de votre téléphone avant chaque prise de service.</li><li>Dans Réglages, « Ma fiche » : ajoutez votre photo, votre téléphone, votre mail et une personne à prévenir en cas d’urgence (avec un bouton pour l’appeler). Ces informations restent dans votre application.</li><li>Onglet Contacts → « Espace Équipe » : avec le code donné par David, proposez ou consultez des échanges de services (à faire valider par Keolis ; en choisissant la date, votre service du jour se remplit tout seul), retrouvez l’annuaire commun, les infos partagées sur le dépôt, les annonces « Entre nous » et envoyez vos avis. Un QR code permet de partager une proposition ou d’inviter un collègue.</li><li>Ensuite, servez-vous-en chaque jour : notes, tour du bus, assistant, bilans, congés.</li></ol><div class="row" style="margin-top:10px"><button class="btn ghost" id="gobk">Aller à la zone de collage</button><button class="btn ghost" id="rewel">Revoir l’accueil</button></div></div>':'')+(TEMPLATE?'<div class="card"><h3 class="sec">Mon planning en photo</h3><p class="note" style="margin-bottom:10px">Pas envie de tout saisir ? Photographiez votre planning et envoyez-le à David : il remplit vos mois pour vous.</p><button class="btn" id="scanopen">Envoyer mon planning en photo</button></div>':'')+
+    (TEMPLATE?'<div class="card"><h3 class="sec">Notice : comment ça marche</h3><ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Saisissez votre roulement vous-même (bouton « Saisir ou modifier mon roulement »)…</li><li>…ou photographiez votre planning et envoyez-le à David avec la carte « Mon planning en photo ».</li><li>David remplit vos mois et vous renvoie un texte de sauvegarde par message.</li><li>Copiez ce texte, puis collez-le dans la zone « Sauvegarde » en bas de cette page et touchez « Restaurer depuis ce texte » : votre planning apparaît.</li><li>Dans les horaires de vos services (Réglages), indiquez où vous commencez et finissez (dépôt ou station) et touchez « Service en deux parties » si vous reprenez après une coupure. Pour le week-end et les jours fériés, ajoutez des horaires différents sous le service. Sur la fiche d’une journée (calendrier du mois), choisissez Habituel, Une fois, Deux fois ou Décalage ; le bouton « Appliquer à lundi–vendredi » répercute le choix sur les autres jours de la semaine. Pour une absence (maladie, vacances, enfant malade, congés spéciaux, formation…), touchez « Poser une absence ou un congé », choisissez le type et la date de fin : toute la période est posée d’un coup.</li><li>Au tour du bus, si le bus est « À signaler » ou en cas d’incident, touchez « Envoyer à la maintenance » : indiquez une fois le numéro ou le mail de la maintenance, puis envoyez le constat par WhatsApp, SMS ou mail (les photos partent avec « Partager avec les photos »).</li><li>Dans Réglages, « Outils du chauffeur » : « Mon mémo » pour noter vos idées et cocher ce qui est fait, et « Guide bus et pannes » (réflexes en cas de panne, plus vos propres notices par bus). Dans l’Espace Équipe, l’onglet « Bus » permet de laisser une consigne aux collègues sur un bus (aussi depuis le Tour du bus), visible une semaine.</li><li>Dans le Bilan, « Bus conduits » et « Bus jour par jour » listent vos bus et leurs dates (utile en cas de litige). Dans Réglages, « Alerte tour du bus » crée un rappel dans le calendrier de votre téléphone avant chaque prise de service.</li><li>Dans Réglages, « Ma fiche » : ajoutez votre photo, votre téléphone, votre mail et une personne à prévenir en cas d’urgence (avec un bouton pour l’appeler). Ces informations restent dans votre application.</li><li>Onglet Contacts → « Espace Équipe » : avec le code donné par David, proposez ou consultez des échanges de services (à faire valider par Keolis ; en choisissant la date, votre service du jour se remplit tout seul), retrouvez l’annuaire commun, les infos partagées sur le dépôt, les annonces « Entre nous » et envoyez vos avis. Un QR code permet de partager une proposition ou d’inviter un collègue.</li><li>Ensuite, servez-vous-en chaque jour : notes, tour du bus, assistant, bilans, congés.</li></ol><div class="row" style="margin-top:10px"><button class="btn ghost" id="gobk">Aller à la zone de collage</button><button class="btn ghost" id="rewel">Revoir l’accueil</button></div></div>':'')+(TEMPLATE?'<div class="card"><h3 class="sec">Mon planning en photo</h3><p class="note" style="margin-bottom:10px">Pas envie de tout saisir ? Photographiez votre planning et envoyez-le à David : il remplit vos mois pour vous.</p><button class="btn" id="scanopen">Envoyer mon planning en photo</button></div>':'')+
     '<div class="card"><h3 class="sec">Congés et récupérations</h3><p class="note">Indiquez votre droit annuel en jours pour suivre ce qu’il vous reste. Laissez vide si vous ne voulez pas de compteur.</p>';
   allTypes().filter(function(t){return t.c==='CP'||t.c==='REC'||state.quota[t.c]!==undefined||countCode(t.c)>0||(state.types||[]).some(function(x){return x.c===t.c})}).forEach(function(t){
     h+='<div class="srow" style="display:grid;grid-template-columns:1fr 100px"><div><span class="chip">'+esc(t.l)+'</span><div class="note" style="font-size:11px;margin-top:3px">'+esc(t.c)+' · '+countCode(t.c)+' j posés</div></div><div><label for="q_'+esc(t.c)+'">Droit annuel</label><input id="q_'+esc(t.c)+'" type="number" inputmode="decimal" min="0" step="0.5" data-q="'+esc(t.c)+'" value="'+(state.quota[t.c]===undefined?'':esc(state.quota[t.c]))+'"></div></div>';
@@ -1680,18 +1690,18 @@ function eqStart(){
   });
 }
 function eqRefresh(){
-  eq.msg='';var q,post=(eq.sub==='dep'||eq.sub==='nous');
+  eq.msg='';var q,post=(eq.sub==='dep'||eq.sub==='nous'||eq.sub==='bus');
   if(eq.sub==='ech'){
     q=sb.from('echanges').select('*').eq('ferme',false).gte('jour',todayFull()).order('jour',{ascending:true}).then(function(r){if(r.error)throw r.error;eq.ech=r.data||[]});
     if(eq.focus)q=q.then(function(){return sb.from('echanges').select('*').eq('id',eq.focus).then(function(r){eq.focusRow=(r.data&&r.data[0])||null})});
   }else if(eq.sub==='ann')q=sb.from('annuaire').select('*').order('nom',{ascending:true}).then(function(r){if(r.error)throw r.error;eq.ann=r.data||[]});
-  else if(post)q=sb.from('posts').select('*').eq('kind',eq.sub==='dep'?'info':'annonce').order('created_at',{ascending:false}).limit(50).then(function(r){if(r.error)throw r.error;eq.posts=r.data||[]});
+  else if(post)q=sb.from('posts').select('*').eq('kind',eq.sub==='nous'?'annonce':'info').order('created_at',{ascending:false}).limit(100).then(function(r){if(r.error)throw r.error;var L=r.data||[],lim=Date.now()-7*864e5;eq.posts=eq.sub==='bus'?L.filter(function(x){return /^\[BUS\] /.test(x.titre||'')&&new Date(x.created_at||Date.now()).getTime()>=lim}):eq.sub==='dep'?L.filter(function(x){return !/^\[BUS\] /.test(x.titre||'')}):L});
   else q=Promise.resolve();
   q.then(function(){render()},function(){eq.msg=post?'Cette partie n’est pas encore activée.':'Impossible de charger pour l’instant. Vérifiez votre connexion.';eq.posts=[];render()});
 }
 function eqPost(x){
   var mine=x.user_id===eq.uid,d=new Date(x.created_at||Date.now());
-  return '<div class="card" style="margin-bottom:10px"><b>'+esc(x.titre||'')+'</b><p class="note" style="margin:4px 0;white-space:pre-wrap">'+esc(x.texte||'')+'</p><p class="note" style="margin:0;font-size:11px">'+esc(x.name||'Collègue')+' · '+pad(d.getDate())+'/'+pad(d.getMonth()+1)+'</p>'+
+  return '<div class="card" style="margin-bottom:10px"><b>'+esc((x.titre||'').replace(/^\[BUS\] /,'Bus '))+'</b><p class="note" style="margin:4px 0;white-space:pre-wrap">'+esc(x.texte||'')+'</p><p class="note" style="margin:0;font-size:11px">'+esc(x.name||'Collègue')+' · '+pad(d.getDate())+'/'+pad(d.getMonth()+1)+'</p>'+
     ((x.contact)?'<div class="row" style="align-items:center;margin-top:6px"><span class="note" style="flex:1">'+esc(x.contact)+'</span>'+callBtnHtml(x.name||'Collègue',x.contact)+'</div>':'')+
     (mine?'<div class="row" style="margin-top:8px"><button class="btn danger" data-pdel="'+x.id+'">Supprimer</button></div>':'')+'</div>';
 }
@@ -1726,7 +1736,7 @@ function viewEquipe(){
       },function(){m.textContent='Connexion impossible, réessayez.'});
     };
   }else{
-    h+='<div class="seg" id="eqsub" style="grid-template-columns:repeat(3,1fr)">'+[['ech','Échanges'],['dep','Dépôt'],['nous','Entre nous'],['ann','Annuaire'],['avis','Avis']].map(function(a){return '<button data-s="'+a[0]+'" aria-pressed="'+(eq.sub===a[0])+'">'+a[1]+'</button>'}).join('')+'</div>';
+    h+='<div class="seg" id="eqsub" style="grid-template-columns:repeat(3,1fr)">'+[['ech','Échanges'],['bus','Bus'],['dep','Dépôt'],['nous','Entre nous'],['ann','Annuaire'],['avis','Avis']].map(function(a){return '<button data-s="'+a[0]+'" aria-pressed="'+(eq.sub===a[0])+'">'+a[1]+'</button>'}).join('')+'</div>';
     if(eq.msg)h+='<p class="note">'+esc(eq.msg)+'</p>';
     if(eq.sub==='ech'){
       h+='<div class="card"><p class="note"><b>Important :</b> ce sont des propositions entre collègues. Tout échange de service doit être validé par Keolis.</p></div>';
@@ -1737,11 +1747,11 @@ function viewEquipe(){
       if(eq.focusRow)h+='<p class="note"><b>Proposition partagée avec vous</b></p>'+eqRow(eq.focusRow);
       var el=eq.ech.filter(function(x){return !eq.focusRow||x.id!==eq.focusRow.id});
       h+=el.length?el.map(eqRow).join(''):(eq.focusRow?'':'<p class="note" style="text-align:center">Aucune proposition en cours.</p>');
-    }else if(eq.sub==='dep'||eq.sub==='nous'){
-      var dep=eq.sub==='dep',PF=eq.pform||{};
-      h+='<div class="card"><p class="note">'+(dep?'Infos partagées par les collègues sur le dépôt (horaires, consignes, changements). Ce ne sont pas des informations officielles de Keolis.':'Ce que vous proposez ou cherchez entre collègues : objets, covoiturage, coups de main.')+'</p></div>';
-      if(PF.open)h+='<div class="card"><h3 class="sec">'+(dep?'Partager une info':'Nouvelle annonce')+'</h3><label class="lab" for="pt">Titre</label><input class="inp" id="pt" maxlength="100" value="'+esc(PF.titre||'')+'"><label class="lab" for="px" style="margin-top:8px">Détail</label><textarea class="inp" id="px" maxlength="1000">'+esc(PF.texte||'')+'</textarea>'+(dep?'':'<label class="lab" for="pc" style="margin-top:8px">Téléphone (facultatif, visible des collègues)</label><input class="inp" id="pc" type="tel" inputmode="tel" maxlength="30" value="'+esc(PF.contact===undefined?(state.profile.t||''):PF.contact)+'">')+'<div class="row" style="margin-top:10px"><button class="btn" id="pok">Publier</button><button class="btn ghost" id="pno">Annuler</button></div><p class="note" id="pm" style="margin-top:8px"></p></div>';
-      else h+='<div class="row"><button class="btn" id="popen">'+(dep?'Partager une info':'Nouvelle annonce')+'</button></div>';
+    }else if(eq.sub==='dep'||eq.sub==='nous'||eq.sub==='bus'){
+      var bus=eq.sub==='bus',dep=eq.sub==='dep'||bus,PF=eq.pform||{};
+      h+='<div class="card"><p class="note">'+(bus?'Consignes laissées aux collègues sur un bus (par exemple à la fin de votre service : ce qui ne va pas, ce qu’il faut savoir). Elles restent affichées une semaine. Ce ne sont pas des informations officielles de Keolis.':dep?'Infos partagées par les collègues sur le dépôt (horaires, consignes, changements). Ce ne sont pas des informations officielles de Keolis.':'Ce que vous proposez ou cherchez entre collègues : objets, covoiturage, coups de main.')+'</p></div>';
+      if(PF.open)h+='<div class="card"><h3 class="sec">'+(bus?'Laisser une consigne':dep?'Partager une info':'Nouvelle annonce')+'</h3><label class="lab" for="pt">'+(bus?'Numéro du bus':'Titre')+'</label><input class="inp" id="pt" maxlength="100" value="'+esc(PF.titre||'')+'"><label class="lab" for="px" style="margin-top:8px">'+(bus?'Consigne':'Détail')+'</label><textarea class="inp" id="px" maxlength="1000">'+esc(PF.texte||'')+'</textarea>'+(dep?'':'<label class="lab" for="pc" style="margin-top:8px">Téléphone (facultatif, visible des collègues)</label><input class="inp" id="pc" type="tel" inputmode="tel" maxlength="30" value="'+esc(PF.contact===undefined?(state.profile.t||''):PF.contact)+'">')+'<div class="row" style="margin-top:10px"><button class="btn" id="pok">Publier</button><button class="btn ghost" id="pno">Annuler</button></div><p class="note" id="pm" style="margin-top:8px"></p></div>';
+      else h+='<div class="row"><button class="btn" id="popen">'+(bus?'Laisser une consigne':dep?'Partager une info':'Nouvelle annonce')+'</button></div>';
       h+=(eq.posts&&eq.posts.length)?eq.posts.map(eqPost).join(''):'<p class="note" style="text-align:center">Rien pour l’instant.</p>';
     }else if(eq.sub==='ann'){
       h+=eq.ann.length?eq.ann.map(function(c){return '<div class="card" style="margin-bottom:10px"><div class="row" style="align-items:center"><div style="flex:1;min-width:0"><b>'+esc(c.nom||'')+'</b>'+(c.role?'<br><span class="note">'+esc(c.role)+'</span>':'')+(c.tel?'<br><span class="note">'+esc(c.tel)+'</span>':'')+(c.note?'<br><span class="note">'+esc(c.note)+'</span>':'')+'</div>'+(c.tel?callBtnHtml(c.nom||'',c.tel):'')+'</div></div>'}).join(''):'<p class="note" style="text-align:center">Rien pour l’instant : David ajoutera les contacts utiles.</p>';
@@ -1758,9 +1768,9 @@ function viewEquipe(){
   var pn=document.getElementById('pno');if(pn)pn.onclick=function(){eq.pform={};render()};
   var pk=document.getElementById('pok');if(pk)pk.onclick=function(){
     var m=document.getElementById('pm'),t=document.getElementById('pt').value.trim(),x=document.getElementById('px').value.trim(),c=document.getElementById('pc');
-    if(!t){m.textContent='Indiquez un titre.';return}
+    if(!t){m.textContent=eq.sub==='bus'?'Indiquez le numéro du bus.':'Indiquez un titre.';return}
     if(Date.now()-eq.rate<2500)return;eq.rate=Date.now();m.textContent='Publication…';
-    sb.from('posts').insert({kind:eq.sub==='dep'?'info':'annonce',name:(state.profile.n||eq.name||'Collègue').split(' ')[0],titre:t.slice(0,100),texte:x.slice(0,1000),contact:c?c.value.trim().slice(0,30):''}).then(function(r){
+    sb.from('posts').insert({kind:eq.sub==='nous'?'annonce':'info',name:(state.profile.n||eq.name||'Collègue').split(' ')[0],titre:(eq.sub==='bus'?'[BUS] '+t:t).slice(0,100),texte:x.slice(0,1000),contact:c?c.value.trim().slice(0,30):''}).then(function(r){
       if(r.error){m.textContent='Échec de la publication, réessayez.';return}
       eq.pform={};eqRefresh();
     },function(){m.textContent='Connexion impossible.'});
@@ -2170,6 +2180,49 @@ function ficheCard(){
   var h='<div class="card"><h3 class="sec">Ma fiche</h3><div class="fiche">'+avatarHtml()+'<div class="fl"><b>'+(esc(nm)||'Fiche à compléter')+'</b>'+(P.a?' · agent '+esc(P.a):'')+(P.t?'<br>'+esc(P.t):'')+(P.m?'<br>'+esc(P.m):'')+'</div></div>';
   if(P.un||P.ut)h+='<div class="busline" style="margin-top:10px;font-size:13px;font-weight:700;gap:10px"><span>Urgence : '+esc(P.un||'')+(P.ut?' · '+esc(P.ut):'')+'</span>'+(P.ut?callBtnHtml(P.un||'Contact d’urgence',P.ut):'')+'</div>';
   return h+'<div class="row" style="margin-top:10px"><button class="btn" id="fiche">Modifier ma fiche</button></div></div>';
+}
+function toolsCard(){
+  var n=(state.memo||[]).filter(function(x){return !x.done}).length;
+  return '<div class="card"><h3 class="sec">Outils du chauffeur</h3><div class="row"><button class="btn" id="memoopen" style="flex:1">Mon mémo'+(n?' ('+n+' à faire)':'')+'</button><button class="btn ghost" id="guideopen" style="flex:1">Guide bus et pannes</button></div></div>';
+}
+function openMemo(){
+  var L=state.memo||[],todo=L.filter(function(x){return !x.done}),done=L.filter(function(x){return x.done});
+  function row(x){return '<div class="memrow'+(x.done?' done':'')+'"><button class="memck" data-mk="'+esc(x.id)+'" aria-pressed="'+(!!x.done)+'" aria-label="'+(x.done?'Remettre à faire':'Marquer comme fait')+'">'+(x.done?'✓':'')+'</button><span class="memt">'+esc(x.t)+'</span><button class="memx" data-md="'+esc(x.id)+'" aria-label="Supprimer">×</button></div>'}
+  var h='<h2 id="sheetTitle">Mon mémo</h2><p class="note">Notez vos idées et ce qu’il y a à faire. Touchez la case quand c’est fait.</p>'+
+    '<div class="row"><input class="inp" id="memin" placeholder="Une idée, une chose à faire…" style="flex:1" maxlength="200" aria-label="Nouvelle ligne du mémo"><button class="btn" id="memadd">Ajouter</button></div>'+
+    '<div class="memlist">'+(todo.length?todo.map(row).join(''):'<p class="empty">Rien à faire pour l’instant.</p>')+'</div>'+
+    (done.length?'<span class="lab" style="margin-top:10px">Fait ('+done.length+')</span><div class="memlist">'+done.map(row).join('')+'</div><div class="row" style="margin-top:6px"><button class="btn ghost" id="memclr">Effacer ce qui est fait</button></div>':'')+
+    '<div class="row"><button class="btn ghost" id="memno" style="flex:1">Fermer</button></div>';
+  sheet.innerHTML=h;showVeil();
+  function add(){var i=document.getElementById('memin'),t=i.value.trim();if(!t)return;state.memo=(state.memo||[]).concat([{id:'m'+Date.now().toString(36)+Math.floor(Math.random()*999),t:t.slice(0,200),done:0}]);scheduleSave();openMemo();setTimeout(function(){var e=document.getElementById('memin');if(e)e.focus()},50)}
+  document.getElementById('memadd').onclick=add;
+  document.getElementById('memin').onkeydown=function(e){if(e.key==='Enter')add()};
+  sheet.querySelectorAll('[data-mk]').forEach(function(b){b.onclick=function(){var id=b.getAttribute('data-mk');(state.memo||[]).forEach(function(x){if(x.id===id)x.done=x.done?0:1});scheduleSave();openMemo()}});
+  sheet.querySelectorAll('[data-md]').forEach(function(b){b.onclick=function(){var id=b.getAttribute('data-md');state.memo=(state.memo||[]).filter(function(x){return x.id!==id});scheduleSave();openMemo()}});
+  var c=document.getElementById('memclr');if(c)c.onclick=function(){state.memo=(state.memo||[]).filter(function(x){return !x.done});scheduleSave();openMemo()};
+  document.getElementById('memno').onclick=function(){closeSheet();if(tab==='services')render()};
+}
+var PANNE=[
+ ['D’abord la sécurité','Arrêtez-vous dans un endroit sûr si vous le pouvez, serrez le frein de stationnement, mettez les feux de détresse. Si le bus est un danger (fumée, odeur de brûlé, fuite, bus sur la chaussée), faites descendre les voyageurs en sécurité.'],
+ ['Prévenez tout de suite','Appelez la régulation / l’exploitation : donnez le numéro du bus, le lieu, ce qui se passe et s’il y a des voyageurs à bord. Suivez ce qu’on vous demande.'],
+ ['Ne bricolez pas','Ne touchez ni au moteur, ni aux câbles, ni aux éléments haute tension d’un bus électrique ou hybride. Ne démontez rien : seule la maintenance intervient.'],
+ ['Ce que vous pouvez essayer','Seulement ce que la consigne de votre entreprise ou la notice du bus autorise, et après accord de la régulation : par exemple couper puis remettre le contact, vérifier un voyant ou un bouton. Au moindre doute, ne touchez à rien.'],
+ ['Notez et photographiez','Voyants allumés, message au tableau de bord, bruit, odeur, heure et lieu. Puis faites le constat dans le Tour du bus et envoyez-le à la maintenance.']
+];
+function openGuide(edit){
+  var G=state.guide||[];
+  var h='<h2 id="sheetTitle">Guide bus et pannes</h2><span class="lab">En cas de panne ou de problème</span>'+
+    PANNE.map(function(p,i){return '<div class="card" style="box-shadow:none;padding:12px;margin-bottom:8px"><b>'+(i+1)+'. '+esc(p[0])+'</b><p class="note" style="margin:4px 0 0">'+esc(p[1])+'</p></div>'}).join('')+
+    '<p class="note">Ce sont des réflexes généraux, pas une notice officielle. En cas de doute, suivez les consignes de Keolis et de votre régulation.</p>'+
+    '<span class="lab" style="margin-top:10px">Mes notices et astuces par bus</span>'+
+    (G.length?G.map(function(g){return '<div class="card" style="box-shadow:none;padding:12px;margin-bottom:8px"><b>'+esc(g.t)+'</b><p class="note" style="margin:4px 0;white-space:pre-wrap">'+esc(g.x||'')+'</p><button class="btn danger" data-gd="'+esc(g.id)+'">Supprimer</button></div>'}).join(''):'<p class="empty">Rien pour l’instant. Ajoutez par exemple « Citaro : ouvrir la trappe de la batterie » avec ce que vous ou la maintenance savez.</p>')+
+    '<div><label class="lab" for="gt">Titre (modèle de bus, sujet)</label><input class="inp" id="gt" maxlength="80" placeholder="ex. Citaro : bouton de la rampe PMR"></div>'+
+    '<div><label class="lab" for="gx">Ce qu’il faut savoir</label><textarea class="inp" id="gx" maxlength="1200" placeholder="Où se trouve le bouton, comment faire, à qui téléphoner…"></textarea></div>'+
+    '<div class="row"><button class="btn" id="gadd" style="flex:1">Ajouter</button><button class="btn ghost" id="gno">Fermer</button></div>';
+  sheet.innerHTML=h;showVeil();
+  document.getElementById('gadd').onclick=function(){var t=document.getElementById('gt').value.trim(),x=document.getElementById('gx').value.trim();if(!t)return;state.guide=(state.guide||[]).concat([{id:'g'+Date.now().toString(36),t:t.slice(0,80),x:x.slice(0,1200)}]);scheduleSave();openGuide()};
+  sheet.querySelectorAll('[data-gd]').forEach(function(b){b.onclick=function(){var id=b.getAttribute('data-gd');state.guide=(state.guide||[]).filter(function(g){return g.id!==id});scheduleSave();openGuide()}});
+  document.getElementById('gno').onclick=closeSheet;
 }
 var fichePh=null;
 function openFiche(){
