@@ -880,8 +880,8 @@ function render(){
   main.onclick=null;main.oninput=null;
   clearTimeout(animT);
   if(anim){main.className='in-'+anim;animT=setTimeout(function(){main.className=''},1100);anim=null}else main.className='';
-  navEl.style.setProperty('--i',Math.max(0,TABS.indexOf(tab)));
-  if(tab==='mois')viewMonth();else if(tab==='annee')viewYear();else if(tab==='bilan')viewBilan();else if(tab==='contacts')viewContacts();else viewServices();
+  navEl.style.setProperty('--i',Math.max(0,TABS.indexOf(tab==='equipe'?'contacts':tab)));
+  if(tab==='mois')viewMonth();else if(tab==='annee')viewYear();else if(tab==='bilan')viewBilan();else if(tab==='contacts')viewContacts();else if(tab==='equipe')viewEquipe();else viewServices();
   main.querySelectorAll('[data-wx]').forEach(function(b){b.onclick=function(e){e.stopPropagation();state.hideWarn=true;scheduleSave();render()}});
   main.querySelectorAll('[data-wg]').forEach(function(b){b.onclick=function(){setTab('services')}});
   updateSub();
@@ -1449,7 +1449,7 @@ function settingsCards(){
   var h='<div class="card"><h3 class="sec">Apparence</h3><p class="note" style="margin-bottom:10px">Choisissez le mode qui vous repose les yeux.</p><div class="thseg">'+[['auto','Automatique'],['light','Clair'],['dark','Sombre']].map(function(o){var on=(state.theme||'auto')===o[0];return '<button data-th="'+o[0]+'" class="'+(on?'on':'')+'" aria-pressed="'+on+'">'+o[1]+'</button>'}).join('')+'</div></div>'+
     '<div class="card"><h3 class="sec">Alerte tour du bus</h3><p class="note" style="margin-bottom:10px">Un rappel sonne avant chaque prise de service, même appli fermée. Il est créé dans le calendrier de votre téléphone.</p><span class="lab">Combien de temps avant ?</span><div class="tags" id="alm">'+[15,30,45,60].map(function(n){return '<button type="button" data-al="'+n+'" aria-pressed="'+((state.alert||30)===n)+'">'+n+' min</button>'}).join('')+'</div><div class="row" style="margin-top:10px"><button class="btn" id="alics">Créer les alertes</button></div><p class="note" id="alm2" style="margin-top:8px"></p></div>'+
     '<div class="card"><h3 class="sec">Votre avis</h3><p class="note" style="margin-bottom:10px">Cette application évolue : notez chaque partie, dites ce que vous aimez, ce qui manque ou ce qui est en trop.</p><button class="btn" id="avisopen">Donner mon avis</button></div>'+
-    (TEMPLATE?'<div class="card"><h3 class="sec">Notice : comment ça marche</h3><ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Saisissez votre roulement vous-même (bouton « Saisir ou modifier mon roulement »)…</li><li>…ou photographiez votre planning et envoyez-le à David avec la carte « Mon planning en photo ».</li><li>David remplit vos mois et vous renvoie un texte de sauvegarde par message.</li><li>Copiez ce texte, puis collez-le dans la zone « Sauvegarde » en bas de cette page et touchez « Restaurer depuis ce texte » : votre planning apparaît.</li><li>Dans les horaires de vos services (Réglages), indiquez où vous commencez et finissez (dépôt ou station) et touchez « Service en deux parties » si vous reprenez après une coupure. Pour le week-end et les jours fériés, ajoutez des horaires différents sous le service. Sur la fiche d’une journée (calendrier du mois), choisissez Habituel, Une fois, Deux fois ou Décalage ; le bouton « Appliquer à lundi–vendredi » répercute le choix sur les autres jours de la semaine. Pour une absence (maladie, vacances, enfant malade, congés spéciaux, formation…), touchez « Poser une absence ou un congé », choisissez le type et la date de fin : toute la période est posée d’un coup.</li><li>Dans le Bilan, « Bus conduits » et « Bus jour par jour » listent vos bus et leurs dates (utile en cas de litige). Dans Réglages, « Alerte tour du bus » crée un rappel dans le calendrier de votre téléphone avant chaque prise de service.</li><li>Dans Réglages, « Ma fiche » : ajoutez votre photo, votre téléphone, votre mail et une personne à prévenir en cas d’urgence (avec un bouton pour l’appeler). Ces informations restent dans votre application.</li><li>Ensuite, servez-vous-en chaque jour : notes, tour du bus, assistant, bilans, congés.</li></ol><div class="row" style="margin-top:10px"><button class="btn ghost" id="gobk">Aller à la zone de collage</button><button class="btn ghost" id="rewel">Revoir l’accueil</button></div></div>':'')+(TEMPLATE?'<div class="card"><h3 class="sec">Mon planning en photo</h3><p class="note" style="margin-bottom:10px">Pas envie de tout saisir ? Photographiez votre planning et envoyez-le à David : il remplit vos mois pour vous.</p><button class="btn" id="scanopen">Envoyer mon planning en photo</button></div>':'')+
+    (TEMPLATE?'<div class="card"><h3 class="sec">Notice : comment ça marche</h3><ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Saisissez votre roulement vous-même (bouton « Saisir ou modifier mon roulement »)…</li><li>…ou photographiez votre planning et envoyez-le à David avec la carte « Mon planning en photo ».</li><li>David remplit vos mois et vous renvoie un texte de sauvegarde par message.</li><li>Copiez ce texte, puis collez-le dans la zone « Sauvegarde » en bas de cette page et touchez « Restaurer depuis ce texte » : votre planning apparaît.</li><li>Dans les horaires de vos services (Réglages), indiquez où vous commencez et finissez (dépôt ou station) et touchez « Service en deux parties » si vous reprenez après une coupure. Pour le week-end et les jours fériés, ajoutez des horaires différents sous le service. Sur la fiche d’une journée (calendrier du mois), choisissez Habituel, Une fois, Deux fois ou Décalage ; le bouton « Appliquer à lundi–vendredi » répercute le choix sur les autres jours de la semaine. Pour une absence (maladie, vacances, enfant malade, congés spéciaux, formation…), touchez « Poser une absence ou un congé », choisissez le type et la date de fin : toute la période est posée d’un coup.</li><li>Dans le Bilan, « Bus conduits » et « Bus jour par jour » listent vos bus et leurs dates (utile en cas de litige). Dans Réglages, « Alerte tour du bus » crée un rappel dans le calendrier de votre téléphone avant chaque prise de service.</li><li>Dans Réglages, « Ma fiche » : ajoutez votre photo, votre téléphone, votre mail et une personne à prévenir en cas d’urgence (avec un bouton pour l’appeler). Ces informations restent dans votre application.</li><li>Onglet Contacts → « Espace Équipe » : avec le code donné par David, proposez ou consultez des échanges de services (à faire valider par Keolis), retrouvez l’annuaire commun et envoyez vos avis.</li><li>Ensuite, servez-vous-en chaque jour : notes, tour du bus, assistant, bilans, congés.</li></ol><div class="row" style="margin-top:10px"><button class="btn ghost" id="gobk">Aller à la zone de collage</button><button class="btn ghost" id="rewel">Revoir l’accueil</button></div></div>':'')+(TEMPLATE?'<div class="card"><h3 class="sec">Mon planning en photo</h3><p class="note" style="margin-bottom:10px">Pas envie de tout saisir ? Photographiez votre planning et envoyez-le à David : il remplit vos mois pour vous.</p><button class="btn" id="scanopen">Envoyer mon planning en photo</button></div>':'')+
     '<div class="card"><h3 class="sec">Congés et récupérations</h3><p class="note">Indiquez votre droit annuel en jours pour suivre ce qu’il vous reste. Laissez vide si vous ne voulez pas de compteur.</p>';
   allTypes().filter(function(t){return t.c==='CP'||t.c==='REC'||state.quota[t.c]!==undefined||countCode(t.c)>0||(state.types||[]).some(function(x){return x.c===t.c})}).forEach(function(t){
     h+='<div class="srow" style="display:grid;grid-template-columns:1fr 100px"><div><span class="chip">'+esc(t.l)+'</span><div class="note" style="font-size:11px;margin-top:3px">'+esc(t.c)+' · '+countCode(t.c)+' j posés</div></div><div><label for="q_'+esc(t.c)+'">Droit annuel</label><input id="q_'+esc(t.c)+'" type="number" inputmode="decimal" min="0" step="0.5" data-q="'+esc(t.c)+'" value="'+(state.quota[t.c]===undefined?'':esc(state.quota[t.c]))+'"></div></div>';
@@ -1582,9 +1582,124 @@ function fillContacts(){
   el.innerHTML=list.length?list.map(contactCard).join(''):'<div class="card"><p class="empty">'+(contactList().length?'Aucun contact ne correspond.':'Aucun numéro enregistré pour l’instant. Appuyez sur Ajouter pour saisir vos numéros utiles (planning, exploitation, manager…).')+'</p></div>';
   el.querySelectorAll('[data-ce]').forEach(function(b){b.onclick=function(){openContact(b.getAttribute('data-ce'))}});
 }
+
+/* ---------- espace équipe (Supabase) ---------- */
+var SB_URL='https://alxqmuyywittodxvirqh.supabase.co',SB_KEY='sb_publishable_BqGYmFopXd-aqNiC5nXJUw_jBfTo2U6';
+var sb=null,eq={st:'init',sub:'ech',msg:'',ech:[],ann:[],uid:'',form:{},busy:false,rate:0,sec:'Planning'};
+var EQSEC=['Planning','Services et horaires','Tour du bus','Assistant','Congés et absences','Bilan','Contacts','Équipe','Idée générale'];
+function eqOnline(){return !(window.claude&&window.claude.use)}
+function eqClient(cb){
+  if(sb)return cb();
+  function mk(){try{sb=window.supabase.createClient(SB_URL,SB_KEY);cb()}catch(e){eq.st='off';render()}}
+  if(window.supabase&&window.supabase.createClient)return mk();
+  var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';sc.onload=mk;sc.onerror=function(){eq.st='off';render()};document.head.appendChild(sc);
+}
+function eqStart(){
+  eq.st='load';
+  eqClient(function(){
+    sb.auth.getSession().then(function(r){
+      if(r.data&&r.data.session)return r;
+      return sb.auth.signInAnonymously();
+    }).then(function(r){
+      if(r&&r.error)throw r.error;
+      return sb.auth.getUser();
+    }).then(function(r){
+      eq.uid=(r.data&&r.data.user&&r.data.user.id)||'';
+      return sb.rpc('is_member');
+    }).then(function(r){
+      if(r.error)throw r.error;
+      eq.st=r.data===true?'in':'join';
+      if(eq.st==='in')eqRefresh();else render();
+    }).catch(function(){eq.st='off';render()});
+  });
+}
+function eqRefresh(){
+  eq.msg='';
+  var q;
+  if(eq.sub==='ech')q=sb.from('echanges').select('*').eq('ferme',false).gte('jour',todayFull()).order('jour',{ascending:true}).then(function(r){if(r.error)throw r.error;eq.ech=r.data||[]});
+  else if(eq.sub==='ann')q=sb.from('annuaire').select('*').order('nom',{ascending:true}).then(function(r){if(r.error)throw r.error;eq.ann=r.data||[]});
+  else q=Promise.resolve();
+  q.then(function(){render()},function(){eq.msg='Impossible de charger pour l’instant. Vérifiez votre connexion.';render()});
+}
+function eqRow(x){
+  var mine=x.user_id===eq.uid;
+  return '<div class="card" style="margin-bottom:10px"><b>'+esc(labelFull(x.jour))+'</b><p class="note" style="margin:4px 0"><b>'+esc(x.name||'Collègue')+'</b> propose <b>'+esc(x.propose||'')+'</b>'+(x.souhaite?' et souhaite <b>'+esc(x.souhaite)+'</b>':'')+'</p>'+(x.note?'<p class="note" style="margin:0 0 6px">'+esc(x.note)+'</p>':'')+
+    '<div class="row" style="align-items:center">'+(x.contact?'<span class="note" style="flex:1">'+esc(x.contact)+'</span>'+callBtnHtml(x.name||'Collègue',x.contact):'<span style="flex:1"></span>')+'</div>'+
+    (mine?'<div class="row" style="margin-top:8px"><button class="btn ghost" data-eqdone="'+x.id+'">Conclu</button><button class="btn danger" data-eqdel="'+x.id+'">Supprimer</button></div>':'')+'</div>';
+}
+function viewEquipe(){
+  main.onclick=null;main.oninput=null;main.ontouchstart=main.ontouchend=null;
+  var h='<div class="stack"><div class="row" style="align-items:center"><button class="btn ghost" id="eqback">‹ Retour</button><h2 style="font-size:19px;margin:0 0 0 8px">Espace Équipe</h2></div>';
+  if(!eqOnline()){
+    main.innerHTML=h+'<div class="card"><p class="note">L’espace Équipe est disponible dans la version en ligne de l’application (lien envoyé par David).</p></div></div>';
+    document.getElementById('eqback').onclick=function(){setTab('contacts','z')};return;
+  }
+  if(eq.st==='init'){eqStart()}
+  if(eq.st==='init'||eq.st==='load'){
+    main.innerHTML=h+'<div class="card"><p class="note">Connexion…</p></div></div>';
+  }else if(eq.st==='off'){
+    main.innerHTML=h+'<div class="card"><p class="note">Connexion impossible pour l’instant. Vérifiez votre réseau puis réessayez.</p><div class="row" style="margin-top:10px"><button class="btn" id="eqretry">Réessayer</button></div></div></div>';
+    document.getElementById('eqretry').onclick=function(){eq.st='init';render()};
+  }else if(eq.st==='join'){
+    main.innerHTML=h+'<div class="card"><h3 class="sec">Rejoindre l’équipe</h3><p class="note" style="margin-bottom:10px">Saisissez le code donné par David.</p><label class="lab" for="eqcode">Code</label><input class="inp" id="eqcode" autocapitalize="off" autocomplete="off" aria-label="Code d’accès"><label class="lab" for="eqname" style="margin-top:8px">Votre prénom (affiché aux collègues)</label><input class="inp" id="eqname" autocomplete="given-name" value="'+esc((state.profile.n||'').split(' ')[0])+'"><div class="row" style="margin-top:10px"><button class="btn" id="eqjoin">Rejoindre</button></div><p class="note" id="eqm" style="margin-top:8px"></p></div></div>';
+    document.getElementById('eqjoin').onclick=function(){
+      var c=document.getElementById('eqcode').value.trim(),n=document.getElementById('eqname').value.trim(),m=document.getElementById('eqm');
+      if(!c||!n){m.textContent='Indiquez le code et votre prénom.';return}
+      if(Date.now()-eq.rate<2500)return;eq.rate=Date.now();m.textContent='Vérification…';
+      sb.rpc('join_group',{code:c,display_name:n}).then(function(r){
+        if(r.error||r.data!==true){m.textContent='Code incorrect.';return}
+        eq.st='in';eq.name=n;eqRefresh();
+      },function(){m.textContent='Connexion impossible, réessayez.'});
+    };
+  }else{
+    h+='<div class="seg" id="eqsub" style="grid-template-columns:repeat(3,1fr)">'+[['ech','Échanges'],['ann','Annuaire'],['avis','Avis']].map(function(a){return '<button data-s="'+a[0]+'" aria-pressed="'+(eq.sub===a[0])+'">'+a[1]+'</button>'}).join('')+'</div>';
+    if(eq.msg)h+='<p class="note">'+esc(eq.msg)+'</p>';
+    if(eq.sub==='ech'){
+      h+='<div class="card"><p class="note"><b>Important :</b> ce sont des propositions entre collègues. Tout échange de service doit être validé par Keolis.</p></div>';
+      if(eq.form.open){
+        var F=eq.form;
+        h+='<div class="card"><h3 class="sec">Proposer un échange</h3><label class="lab" for="efj">Jour concerné</label><input class="inp" id="efj" type="date" min="'+esc(todayFull())+'" value="'+esc(F.jour||'')+'"><label class="lab" for="efp" style="margin-top:8px">Je propose</label><input class="inp" id="efp" placeholder="ex. mon service 5_209" value="'+esc(F.propose||'')+'"><label class="lab" for="efs" style="margin-top:8px">Je souhaite (facultatif)</label><input class="inp" id="efs" placeholder="ex. un service de l’après-midi" value="'+esc(F.souhaite||'')+'"><label class="lab" for="efn" style="margin-top:8px">Précision (facultatif)</label><input class="inp" id="efn" value="'+esc(F.note||'')+'"><label class="lab" for="efc" style="margin-top:8px">Mon téléphone (facultatif, visible des collègues)</label><input class="inp" id="efc" type="tel" inputmode="tel" value="'+esc(F.contact===undefined?(state.profile.t||''):F.contact)+'"><div class="row" style="margin-top:10px"><button class="btn" id="efok">Publier</button><button class="btn ghost" id="efno">Annuler</button></div><p class="note" id="efm" style="margin-top:8px"></p></div>';
+      }else h+='<div class="row"><button class="btn" id="efopen">Proposer un échange</button></div>';
+      h+=eq.ech.length?eq.ech.map(eqRow).join(''):'<p class="note" style="text-align:center">Aucune proposition en cours.</p>';
+    }else if(eq.sub==='ann'){
+      h+=eq.ann.length?eq.ann.map(function(c){return '<div class="card" style="margin-bottom:10px"><div class="row" style="align-items:center"><div style="flex:1;min-width:0"><b>'+esc(c.nom||'')+'</b>'+(c.role?'<br><span class="note">'+esc(c.role)+'</span>':'')+(c.tel?'<br><span class="note">'+esc(c.tel)+'</span>':'')+(c.note?'<br><span class="note">'+esc(c.note)+'</span>':'')+'</div>'+(c.tel?callBtnHtml(c.nom||'',c.tel):'')+'</div></div>'}).join(''):'<p class="note" style="text-align:center">Rien pour l’instant : David ajoutera les contacts utiles.</p>';
+    }else{
+      h+='<div class="card"><h3 class="sec">Avis et idées</h3><p class="note" style="margin-bottom:8px">Dites ce qui vous plaît, ce qui manque ou ce qui est en trop. Seul David lit vos avis.</p><label class="lab" for="eas">Partie concernée</label><select class="inp" id="eas">'+EQSEC.map(function(x){return '<option'+(eq.sec===x?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select><span class="lab" style="margin-top:8px">Note</span><div class="tags" id="ean">'+[1,2,3,4,5].map(function(n){return '<button data-n="'+n+'" aria-pressed="'+(eq.note===n)+'">'+n+' ★</button>'}).join('')+'</div><label class="lab" for="eat" style="margin-top:8px">Votre message</label><textarea class="inp" id="eat" placeholder="Ce que j’aime, ce qui manque…">'+esc(eq.txt||'')+'</textarea><div class="row" style="margin-top:10px"><button class="btn" id="eaok">Envoyer</button></div><p class="note" id="eam" style="margin-top:8px"></p></div>';
+    }
+    main.innerHTML=h+'</div>';
+  }
+  var bk=document.getElementById('eqback');if(bk)bk.onclick=function(){setTab('contacts','z')};
+  var sub=document.getElementById('eqsub');if(sub)sub.onclick=function(e){var b=e.target.closest('button');if(!b)return;eq.sub=b.getAttribute('data-s');eq.form={};eqRefresh()};
+  var fo=document.getElementById('efopen');if(fo)fo.onclick=function(){eq.form={open:true};render()};
+  var fn=document.getElementById('efno');if(fn)fn.onclick=function(){eq.form={};render()};
+  var fk=document.getElementById('efok');if(fk)fk.onclick=function(){
+    var m=document.getElementById('efm'),F={jour:document.getElementById('efj').value,propose:document.getElementById('efp').value.trim(),souhaite:document.getElementById('efs').value.trim(),note:document.getElementById('efn').value.trim(),contact:document.getElementById('efc').value.trim()};
+    if(!F.jour||!F.propose){m.textContent='Indiquez le jour et ce que vous proposez.';return}
+    if(Date.now()-eq.rate<2500)return;eq.rate=Date.now();m.textContent='Publication…';
+    sb.from('echanges').insert({name:(state.profile.n||eq.name||'Collègue').split(' ')[0],jour:F.jour,propose:F.propose.slice(0,120),souhaite:F.souhaite.slice(0,120),note:F.note.slice(0,200),contact:F.contact.slice(0,30)}).then(function(r){
+      if(r.error){m.textContent='Échec de la publication, réessayez.';return}
+      eq.form={};eqRefresh();
+    },function(){m.textContent='Connexion impossible.'});
+  };
+  main.querySelectorAll('[data-eqdone]').forEach(function(b){b.onclick=function(){sb.from('echanges').update({ferme:true}).eq('id',b.getAttribute('data-eqdone')).then(function(){eqRefresh()})}});
+  main.querySelectorAll('[data-eqdel]').forEach(function(b){b.onclick=function(){sb.from('echanges').delete().eq('id',b.getAttribute('data-eqdel')).then(function(){eqRefresh()})}});
+  var an=document.getElementById('ean');if(an)an.onclick=function(e){var b=e.target.closest('button');if(!b)return;eq.note=+b.getAttribute('data-n');Array.prototype.forEach.call(an.children,function(x){x.setAttribute('aria-pressed',String(x===b))})};
+  var asel=document.getElementById('eas');if(asel)asel.onchange=function(){eq.sec=asel.value};
+  var ak=document.getElementById('eaok');if(ak)ak.onclick=function(){
+    var m=document.getElementById('eam'),t=document.getElementById('eat').value.trim();eq.txt=t;
+    if(!t&&!eq.note){m.textContent='Écrivez un message ou donnez une note.';return}
+    if(Date.now()-eq.rate<2500)return;eq.rate=Date.now();m.textContent='Envoi…';
+    sb.from('avis').insert({name:(state.profile.n||eq.name||'').split(' ')[0],section:eq.sec,note:eq.note||null,texte:t.slice(0,1000)}).then(function(r){
+      if(r.error){m.textContent='Échec de l’envoi, réessayez.';return}
+      eq.txt='';eq.note=0;m.textContent='Merci, votre avis est envoyé à David.';document.getElementById('eat').value='';
+      Array.prototype.forEach.call(document.querySelectorAll('#ean button'),function(x){x.setAttribute('aria-pressed','false')});
+    },function(){m.textContent='Connexion impossible.'});
+  };
+}
 function viewContacts(){
   main.onclick=null;main.oninput=null;main.ontouchstart=main.ontouchend=null;
   main.innerHTML='<div class="stack"><div class="card"><h3 class="sec">Numéros utiles</h3><div class="inrow"><input class="inp" id="cs" placeholder="Rechercher un nom ou un service" value="'+esc(cq)+'" aria-label="Rechercher un contact"><button class="btn" id="cadd">Ajouter</button></div></div><div id="clist"></div></div>';
+  if(TEMPLATE){var st0=main.firstChild;st0.insertAdjacentHTML('afterbegin','<div class="card"><h3 class="sec">Espace Équipe</h3><p class="note" style="margin-bottom:10px">Échanges de services entre collègues, annuaire commun, avis et idées. Réservé aux chauffeurs qui ont le code.</p><button class="btn" id="eqopen">Ouvrir l’espace Équipe</button></div>');document.getElementById('eqopen').onclick=function(){eq.st='init';setTab('equipe','z')}}
   document.getElementById('cs').oninput=function(e){cq=e.target.value;fillContacts()};
   document.getElementById('cadd').onclick=function(){openContact(null)};
   fillContacts();
