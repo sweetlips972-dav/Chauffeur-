@@ -497,7 +497,7 @@ RAW.forEach(function(line,m){
   for(var d=1;d<=dim(m);d++)BASE[iso(m,d)]=TEMPLATE?'-':(out[d-1]||'-');
 });
 
-var state={days:{},svc:{},contacts:null,rem:[],quota:{},types:[],profile:{n:'',a:''},plan:{},hideWarn:false};
+var state={days:{},svc:{},contacts:null,rem:[],quota:{},types:[],profile:{n:'',a:''},plan:{},hideWarn:false,maint:{n:'Maintenance',t:'',e:''}};
 var SEED_CONTACTS=[
  {id:'k1',n:'Exploitation 1',r:'Exploitation',t:'06 73 67 35 74'},
  {id:'k2',n:'Exploitation 2',r:'Exploitation',t:'06 31 75 49 93'},
@@ -621,9 +621,9 @@ function busSvg(cl){
 }
 function driveHtml(){return '<span class="drive">'+busSvg()+'</span>'}
 function setSaved(txt,ok){var e=document.getElementById('saved');if(!ok&&/^(Enregistrement|Chargement)/.test(txt))e.innerHTML=driveHtml()+txt;else e.textContent=txt;e.className=ok?'ok':''}
-function serialize(){return JSON.stringify({v:2,year:YEAR,days:state.days,svc:state.svc,contacts:state.contacts,rem:state.rem,quota:state.quota,types:state.types,profile:state.profile,plan:state.plan,hideWarn:state.hideWarn,theme:state.theme||'',alert:state.alert||0})}
+function serialize(){return JSON.stringify({v:2,year:YEAR,days:state.days,svc:state.svc,contacts:state.contacts,rem:state.rem,quota:state.quota,types:state.types,profile:state.profile,plan:state.plan,hideWarn:state.hideWarn,maint:state.maint,theme:state.theme||'',alert:state.alert||0})}
 function applyData(txt){
-  try{var o=JSON.parse(txt);if(o&&o.days&&o.svc){state.days=o.days;state.svc=o.svc;state.contacts=Array.isArray(o.contacts)?o.contacts:null;state.rem=Array.isArray(o.rem)?o.rem:[];state.quota=o.quota||{};state.types=Array.isArray(o.types)?o.types:[];state.profile=(o.profile&&typeof o.profile==='object')?Object.assign({},state.profile,o.profile):{n:'',a:''};state.plan=(o.plan&&typeof o.plan==='object')?o.plan:{};state.hideWarn=!!o.hideWarn;state.theme=o.theme||state.theme||'';state.alert=+o.alert||state.alert||0;rebuildBase();return true}}catch(e){}
+  try{var o=JSON.parse(txt);if(o&&o.days&&o.svc){state.days=o.days;state.svc=o.svc;state.contacts=Array.isArray(o.contacts)?o.contacts:null;state.rem=Array.isArray(o.rem)?o.rem:[];state.quota=o.quota||{};state.types=Array.isArray(o.types)?o.types:[];state.profile=(o.profile&&typeof o.profile==='object')?Object.assign({},state.profile,o.profile):{n:'',a:''};state.plan=(o.plan&&typeof o.plan==='object')?o.plan:{};state.hideWarn=!!o.hideWarn;state.maint=(o.maint&&typeof o.maint==='object')?Object.assign({n:'Maintenance',t:'',e:''},o.maint):{n:'Maintenance',t:'',e:''};state.theme=o.theme||state.theme||'';state.alert=+o.alert||state.alert||0;rebuildBase();return true}}catch(e){}
   return false;
 }
 function rebuildBase(){if(!TEMPLATE)return;Object.keys(BASE).forEach(function(k){BASE[k]='-'});Object.keys(state.plan).forEach(function(k){if(k in BASE)BASE[k]=state.plan[k]})}
@@ -1145,10 +1145,11 @@ function drawCtrl(){
     '<div class="row" style="margin-top:8px"><button class="btn ghost cam" id="cam"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Prendre une photo</button></div><p class="note" id="cmsg" style="margin-top:6px"></p></div>'+anHtml();
   h+='<div><button class="tgl" id="cinc" aria-pressed="'+ctrl.inc+'"><span>Incident pendant le service</span><span>'+(ctrl.inc?'Oui':'Non')+'</span></button></div>';
   if(ctrl.inc)h+='<div><label class="lab" for="cit">Que s’est-il passé ?</label><textarea class="inp" id="cit" placeholder="Heure, lieu, ce qui s’est passé…">'+esc(ctrl.it)+'</textarea></div>';
-  if(ctrl.st==='sig'||ctrl.inc)h+='<div class="row"><button class="btn ghost" id="csh" style="flex:1">Envoyer le constat (WhatsApp, SMS, mail)</button></div>';
+  if(ctrl.st==='sig'||ctrl.inc)h+='<div class="row"><button class="btn" id="cmt" style="flex:1">Envoyer à la maintenance</button></div><div class="row"><button class="btn ghost" id="csh" style="flex:1">Envoyer à quelqu’un d’autre</button></div>';
   h+='<div class="row"><button class="btn" id="cok" style="flex:1">Enregistrer</button><button class="btn ghost" id="cno">Annuler</button></div>';
   sheet.innerHTML=h;
   var ab=document.getElementById('anbox');if(ab)ab.onclick=function(e){var b=e.target.closest('[data-an]');if(b)anAct(b.getAttribute('data-an'),b.getAttribute('data-v'))};
+  var cmt=document.getElementById('cmt');if(cmt)cmt.onclick=function(){drawMaint()};
   var csh=document.getElementById('csh');if(csh)csh.onclick=function(){drawShare({title:'Constat bus'+(ctrl.num?' '+ctrl.num:''),subject:'Constat bus '+(ctrl.num||''),text:constatText(),ph:ctrl.ph,back:drawCtrl})};
   sheet.querySelector('.state2').onclick=function(e){var b=e.target.closest('button');if(!b)return;keepCtrl();ctrl.st=b.getAttribute('data-st');if(ctrl.st==='ok')ctrl.tags=[];drawCtrl()};
   var tg=document.getElementById('ctags');
@@ -1290,6 +1291,54 @@ function drawShare(o){
     }).catch(function(e){ms.textContent=(e&&e.name==='AbortError')?'Partage annulé.':'Partage impossible ici : utilisez WhatsApp, SMS ou Copier.'});
   };
   document.getElementById('shback').onclick=function(){if(o.back)o.back();else closeSheet()};
+}
+function maintOk(){var m=state.maint||{};return !!(m.t||m.e)}
+function drawMaint(edit){
+  var m=state.maint||{n:'Maintenance',t:'',e:''},txt=constatText();
+  var h='<h2 id="sheetTitle">Envoyer à la maintenance</h2>';
+  if(!maintOk()||edit){
+    h+='<p class="note">'+(edit?'Modifiez':'Indiquez')+' le contact de la maintenance (numéro et/ou mail). Il est enregistré une fois pour toutes.</p>'+
+      '<div><label class="lab" for="mtn">Nom</label><input class="inp" id="mtn" value="'+esc(m.n||'Maintenance')+'" placeholder="ex. Atelier Torcy"></div>'+
+      '<div><label class="lab" for="mtt">Téléphone (WhatsApp / SMS)</label><input class="inp" id="mtt" type="tel" inputmode="tel" value="'+esc(m.t||'')+'" placeholder="06 00 00 00 00"></div>'+
+      '<div><label class="lab" for="mte">Mail</label><input class="inp" id="mte" type="email" inputmode="email" value="'+esc(m.e||'')+'" placeholder="maintenance@…"></div>'+
+      '<p class="note" id="mtm"></p><div class="row"><button class="btn" id="mtok" style="flex:1">Enregistrer</button><button class="btn ghost" id="mtno">Retour</button></div>';
+    sheet.innerHTML=h;
+    document.getElementById('mtno').onclick=function(){drawCtrl()};
+    document.getElementById('mtok').onclick=function(){
+      var t=document.getElementById('mtt').value.trim(),e=document.getElementById('mte').value.trim();
+      if(!t&&!e){document.getElementById('mtm').textContent='Indiquez au moins un numéro ou un mail.';return}
+      state.maint={n:document.getElementById('mtn').value.trim()||'Maintenance',t:t,e:e};scheduleSave();drawMaint();
+    };
+    return;
+  }
+  var ph=ctrl.ph&&ctrl.ph.length;
+  h+='<p class="note">À : <b>'+esc(m.n||'Maintenance')+'</b>. Vous pouvez corriger le texte avant l’envoi.</p>'+
+    '<textarea class="inp" id="mtx" style="min-height:170px" aria-label="Texte à envoyer">'+esc(txt)+'</textarea>'+
+    '<div class="row">'+(m.t?'<a class="btn" id="mtw" target="_blank" rel="noopener" style="flex:1;text-align:center">WhatsApp</a><a class="btn ghost" id="mts" style="flex:1;text-align:center">SMS</a>':'')+(m.e?'<a class="btn ghost" id="mtml" style="flex:1;text-align:center">Mail</a>':'')+'</div>'+
+    (ph?'<div class="row"><button class="btn ghost" id="mtsh" style="flex:1">Partager avec les '+ctrl.ph.length+' photo'+(ctrl.ph.length>1?'s':'')+'</button></div><p class="note">Le texte part avec WhatsApp, SMS ou Mail. Pour joindre les photos, utilisez « Partager avec les photos » puis choisissez la maintenance dans la liste.</p>':'')+
+    '<p class="note" id="mtm"></p><div class="row"><button class="btn ghost" id="mtcp">Copier</button><button class="btn ghost" id="mted">Changer le contact</button><button class="btn ghost" id="mtno">Retour</button></div>';
+  sheet.innerHTML=h;
+  var ta=document.getElementById('mtx'),ms=document.getElementById('mtm');
+  function links(){
+    var t=encodeURIComponent(ta.value),w=document.getElementById('mtw'),sm=document.getElementById('mts'),ml=document.getElementById('mtml');
+    if(w)w.href='https://wa.me/'+phoneIntl(m.t)+'?text='+t;
+    if(sm)sm.href='sms:'+String(m.t).replace(/[^\d+]/g,'')+'?&body='+t;
+    if(ml)ml.href='mailto:'+m.e+'?subject='+encodeURIComponent('Constat bus '+(ctrl.num||''))+'&body='+t;
+  }
+  links();ta.oninput=links;
+  document.getElementById('mtno').onclick=function(){drawCtrl()};
+  document.getElementById('mted').onclick=function(){drawMaint(true)};
+  document.getElementById('mtcp').onclick=function(){try{navigator.clipboard.writeText(ta.value).then(function(){ms.textContent='Texte copié.'},function(){ms.textContent='Copie refusée : sélectionnez le texte à la main.'})}catch(e){ms.textContent='Copie refusée : sélectionnez le texte à la main.'}};
+  var sh=document.getElementById('mtsh');
+  if(sh)sh.onclick=function(){
+    if(!navigator.share){ms.textContent='Le partage n’est pas disponible ici : utilisez WhatsApp, SMS ou Mail.';return}
+    ms.innerHTML=driveHtml()+'Préparation…';
+    photoFiles(ctrl.ph.slice(0,10)).then(function(files){
+      var data={title:'Constat bus '+(ctrl.num||''),text:ta.value};
+      if(files.length&&navigator.canShare&&navigator.canShare({files:files}))data.files=files;
+      return navigator.share(data).then(function(){ms.textContent='Envoyé.'});
+    }).catch(function(e){ms.textContent=(e&&e.name==='AbortError')?'Partage annulé.':'Partage impossible ici : utilisez WhatsApp, SMS ou Mail.'});
+  };
 }
 function saveCtrl(){
   keepCtrl();
@@ -1450,7 +1499,7 @@ function settingsCards(){
   var h='<div class="card"><h3 class="sec">Apparence</h3><p class="note" style="margin-bottom:10px">Choisissez le mode qui vous repose les yeux.</p><div class="thseg">'+[['auto','Automatique'],['light','Clair'],['dark','Sombre']].map(function(o){var on=(state.theme||'auto')===o[0];return '<button data-th="'+o[0]+'" class="'+(on?'on':'')+'" aria-pressed="'+on+'">'+o[1]+'</button>'}).join('')+'</div></div>'+
     '<div class="card"><h3 class="sec">Alerte tour du bus</h3><p class="note" style="margin-bottom:10px">Un rappel sonne avant chaque prise de service, même appli fermée. Il est créé dans le calendrier de votre téléphone.</p><span class="lab">Combien de temps avant ?</span><div class="tags" id="alm">'+[15,30,45,60].map(function(n){return '<button type="button" data-al="'+n+'" aria-pressed="'+((state.alert||30)===n)+'">'+n+' min</button>'}).join('')+'</div><div class="row" style="margin-top:10px"><button class="btn" id="alics">Créer les alertes</button></div><p class="note" id="alm2" style="margin-top:8px"></p></div>'+
     '<div class="card"><h3 class="sec">Votre avis</h3><p class="note" style="margin-bottom:10px">Cette application évolue : notez chaque partie, dites ce que vous aimez, ce qui manque ou ce qui est en trop.</p><button class="btn" id="avisopen">Donner mon avis</button></div>'+
-    (TEMPLATE?'<div class="card"><h3 class="sec">Notice : comment ça marche</h3><ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Saisissez votre roulement vous-même (bouton « Saisir ou modifier mon roulement »)…</li><li>…ou photographiez votre planning et envoyez-le à David avec la carte « Mon planning en photo ».</li><li>David remplit vos mois et vous renvoie un texte de sauvegarde par message.</li><li>Copiez ce texte, puis collez-le dans la zone « Sauvegarde » en bas de cette page et touchez « Restaurer depuis ce texte » : votre planning apparaît.</li><li>Dans les horaires de vos services (Réglages), indiquez où vous commencez et finissez (dépôt ou station) et touchez « Service en deux parties » si vous reprenez après une coupure. Pour le week-end et les jours fériés, ajoutez des horaires différents sous le service. Sur la fiche d’une journée (calendrier du mois), choisissez Habituel, Une fois, Deux fois ou Décalage ; le bouton « Appliquer à lundi–vendredi » répercute le choix sur les autres jours de la semaine. Pour une absence (maladie, vacances, enfant malade, congés spéciaux, formation…), touchez « Poser une absence ou un congé », choisissez le type et la date de fin : toute la période est posée d’un coup.</li><li>Dans le Bilan, « Bus conduits » et « Bus jour par jour » listent vos bus et leurs dates (utile en cas de litige). Dans Réglages, « Alerte tour du bus » crée un rappel dans le calendrier de votre téléphone avant chaque prise de service.</li><li>Dans Réglages, « Ma fiche » : ajoutez votre photo, votre téléphone, votre mail et une personne à prévenir en cas d’urgence (avec un bouton pour l’appeler). Ces informations restent dans votre application.</li><li>Onglet Contacts → « Espace Équipe » : avec le code donné par David, proposez ou consultez des échanges de services (à faire valider par Keolis ; en choisissant la date, votre service du jour se remplit tout seul), retrouvez l’annuaire commun, les infos partagées sur le dépôt, les annonces « Entre nous » et envoyez vos avis. Un QR code permet de partager une proposition ou d’inviter un collègue.</li><li>Ensuite, servez-vous-en chaque jour : notes, tour du bus, assistant, bilans, congés.</li></ol><div class="row" style="margin-top:10px"><button class="btn ghost" id="gobk">Aller à la zone de collage</button><button class="btn ghost" id="rewel">Revoir l’accueil</button></div></div>':'')+(TEMPLATE?'<div class="card"><h3 class="sec">Mon planning en photo</h3><p class="note" style="margin-bottom:10px">Pas envie de tout saisir ? Photographiez votre planning et envoyez-le à David : il remplit vos mois pour vous.</p><button class="btn" id="scanopen">Envoyer mon planning en photo</button></div>':'')+
+    (TEMPLATE?'<div class="card"><h3 class="sec">Notice : comment ça marche</h3><ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Saisissez votre roulement vous-même (bouton « Saisir ou modifier mon roulement »)…</li><li>…ou photographiez votre planning et envoyez-le à David avec la carte « Mon planning en photo ».</li><li>David remplit vos mois et vous renvoie un texte de sauvegarde par message.</li><li>Copiez ce texte, puis collez-le dans la zone « Sauvegarde » en bas de cette page et touchez « Restaurer depuis ce texte » : votre planning apparaît.</li><li>Dans les horaires de vos services (Réglages), indiquez où vous commencez et finissez (dépôt ou station) et touchez « Service en deux parties » si vous reprenez après une coupure. Pour le week-end et les jours fériés, ajoutez des horaires différents sous le service. Sur la fiche d’une journée (calendrier du mois), choisissez Habituel, Une fois, Deux fois ou Décalage ; le bouton « Appliquer à lundi–vendredi » répercute le choix sur les autres jours de la semaine. Pour une absence (maladie, vacances, enfant malade, congés spéciaux, formation…), touchez « Poser une absence ou un congé », choisissez le type et la date de fin : toute la période est posée d’un coup.</li><li>Au tour du bus, si le bus est « À signaler » ou en cas d’incident, touchez « Envoyer à la maintenance » : indiquez une fois le numéro ou le mail de la maintenance, puis envoyez le constat par WhatsApp, SMS ou mail (les photos partent avec « Partager avec les photos »).</li><li>Dans le Bilan, « Bus conduits » et « Bus jour par jour » listent vos bus et leurs dates (utile en cas de litige). Dans Réglages, « Alerte tour du bus » crée un rappel dans le calendrier de votre téléphone avant chaque prise de service.</li><li>Dans Réglages, « Ma fiche » : ajoutez votre photo, votre téléphone, votre mail et une personne à prévenir en cas d’urgence (avec un bouton pour l’appeler). Ces informations restent dans votre application.</li><li>Onglet Contacts → « Espace Équipe » : avec le code donné par David, proposez ou consultez des échanges de services (à faire valider par Keolis ; en choisissant la date, votre service du jour se remplit tout seul), retrouvez l’annuaire commun, les infos partagées sur le dépôt, les annonces « Entre nous » et envoyez vos avis. Un QR code permet de partager une proposition ou d’inviter un collègue.</li><li>Ensuite, servez-vous-en chaque jour : notes, tour du bus, assistant, bilans, congés.</li></ol><div class="row" style="margin-top:10px"><button class="btn ghost" id="gobk">Aller à la zone de collage</button><button class="btn ghost" id="rewel">Revoir l’accueil</button></div></div>':'')+(TEMPLATE?'<div class="card"><h3 class="sec">Mon planning en photo</h3><p class="note" style="margin-bottom:10px">Pas envie de tout saisir ? Photographiez votre planning et envoyez-le à David : il remplit vos mois pour vous.</p><button class="btn" id="scanopen">Envoyer mon planning en photo</button></div>':'')+
     '<div class="card"><h3 class="sec">Congés et récupérations</h3><p class="note">Indiquez votre droit annuel en jours pour suivre ce qu’il vous reste. Laissez vide si vous ne voulez pas de compteur.</p>';
   allTypes().filter(function(t){return t.c==='CP'||t.c==='REC'||state.quota[t.c]!==undefined||countCode(t.c)>0||(state.types||[]).some(function(x){return x.c===t.c})}).forEach(function(t){
     h+='<div class="srow" style="display:grid;grid-template-columns:1fr 100px"><div><span class="chip">'+esc(t.l)+'</span><div class="note" style="font-size:11px;margin-top:3px">'+esc(t.c)+' · '+countCode(t.c)+' j posés</div></div><div><label for="q_'+esc(t.c)+'">Droit annuel</label><input id="q_'+esc(t.c)+'" type="number" inputmode="decimal" min="0" step="0.5" data-q="'+esc(t.c)+'" value="'+(state.quota[t.c]===undefined?'':esc(state.quota[t.c]))+'"></div></div>';
