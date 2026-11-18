@@ -1509,7 +1509,7 @@ function settingsCards(){
   var h='<div class="card"><h3 class="sec">Apparence</h3><p class="note" style="margin-bottom:10px">Choisissez le mode qui vous repose les yeux.</p><div class="thseg">'+[['auto','Automatique'],['light','Clair'],['dark','Sombre']].map(function(o){var on=(state.theme||'auto')===o[0];return '<button data-th="'+o[0]+'" class="'+(on?'on':'')+'" aria-pressed="'+on+'">'+o[1]+'</button>'}).join('')+'</div></div>'+
     '<div class="card"><h3 class="sec">Alerte tour du bus</h3><p class="note" style="margin-bottom:10px">Un rappel sonne avant chaque prise de service, même appli fermée. Il est créé dans le calendrier de votre téléphone.</p><span class="lab">Combien de temps avant ?</span><div class="tags" id="alm">'+[15,30,45,60].map(function(n){return '<button type="button" data-al="'+n+'" aria-pressed="'+((state.alert||30)===n)+'">'+n+' min</button>'}).join('')+'</div><div class="row" style="margin-top:10px"><button class="btn" id="alics">Créer les alertes</button></div><p class="note" id="alm2" style="margin-top:8px"></p></div>'+
     '<div class="card"><h3 class="sec">Votre avis</h3><p class="note" style="margin-bottom:10px">Cette application évolue : notez chaque partie, dites ce que vous aimez, ce qui manque ou ce qui est en trop.</p><button class="btn" id="avisopen">Donner mon avis</button></div>'+
-    (TEMPLATE?'<div class="card"><h3 class="sec">Notice : comment ça marche</h3><ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Saisissez votre roulement vous-même (bouton « Saisir ou modifier mon roulement »)…</li><li>…ou photographiez votre planning et envoyez-le à David avec la carte « Mon planning en photo ».</li><li>David remplit vos mois et vous renvoie un texte de sauvegarde par message.</li><li>Copiez ce texte, puis collez-le dans la zone « Sauvegarde » en bas de cette page et touchez « Restaurer depuis ce texte » : votre planning apparaît.</li><li>Dans les horaires de vos services (Réglages), indiquez où vous commencez et finissez (dépôt ou station) et touchez « Service en deux parties » si vous reprenez après une coupure. Pour le week-end et les jours fériés, ajoutez des horaires différents sous le service. Sur la fiche d’une journée (calendrier du mois), choisissez Habituel, Une fois, Deux fois ou Décalage ; le bouton « Appliquer à lundi–vendredi » répercute le choix sur les autres jours de la semaine. Pour une absence (maladie, vacances, enfant malade, congés spéciaux, formation…), touchez « Poser une absence ou un congé », choisissez le type et la date de fin : toute la période est posée d’un coup.</li><li>Au tour du bus, si le bus est « À signaler » ou en cas d’incident, touchez « Envoyer à la maintenance » : indiquez une fois le numéro ou le mail de la maintenance, puis envoyez le constat par WhatsApp, SMS ou mail (les photos partent avec « Partager avec les photos »).</li><li>Dans Réglages, « Outils du chauffeur » : « Mon mémo » pour noter vos idées et cocher ce qui est fait, et « Guide bus et pannes » (réflexes en cas de panne, plus vos propres notices par bus). Dans l’Espace Équipe, l’onglet « Bus » permet de laisser une consigne aux collègues sur un bus (aussi depuis le Tour du bus), visible une semaine.</li><li>Dans le Bilan, « Bus conduits » et « Bus jour par jour » listent vos bus et leurs dates (utile en cas de litige). Dans Réglages, « Alerte tour du bus » crée un rappel dans le calendrier de votre téléphone avant chaque prise de service.</li><li>Dans Réglages, « Ma fiche » : ajoutez votre photo, votre téléphone, votre mail et une personne à prévenir en cas d’urgence (avec un bouton pour l’appeler). Ces informations restent dans votre application.</li><li>Onglet Contacts → « Espace Équipe » : avec le code donné par David, proposez ou consultez des échanges de services (à faire valider par Keolis ; en choisissant la date, votre service du jour se remplit tout seul), retrouvez l’annuaire commun, les infos partagées sur le dépôt, les annonces « Entre nous » et envoyez vos avis. Un QR code permet de partager une proposition ou d’inviter un collègue.</li><li>Ensuite, servez-vous-en chaque jour : notes, tour du bus, assistant, bilans, congés.</li></ol><div class="row" style="margin-top:10px"><button class="btn ghost" id="gobk">Aller à la zone de collage</button><button class="btn ghost" id="rewel">Revoir l’accueil</button></div></div>':'')+(TEMPLATE?'<div class="card"><h3 class="sec">Mon planning en photo</h3><p class="note" style="margin-bottom:10px">Pas envie de tout saisir ? Photographiez votre planning et envoyez-le à David : il remplit vos mois pour vous.</p><button class="btn" id="scanopen">Envoyer mon planning en photo</button></div>':'')+
+    (TEMPLATE?'<div class="card"><h3 class="sec">Notice : comment ça marche</h3><ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Saisissez votre roulement vous-même (bouton « Saisir ou modifier mon roulement »)…</li><li>…ou photographiez votre planning et envoyez-le à David avec la carte « Mon planning en photo ».</li><li>David remplit vos mois et vous renvoie un texte de sauvegarde par message.</li><li>Copiez ce texte, puis collez-le dans la zone « Sauvegarde » en bas de cette page et touchez « Restaurer depuis ce texte » : votre planning apparaît.</li><li>Dans les horaires de vos services (Réglages), indiquez où vous commencez et finissez (dépôt ou station) et touchez « Service en deux parties » si vous reprenez après une coupure. Pour le week-end et les jours fériés, ajoutez des horaires différents sous le service. Sur la fiche d’une journée (calendrier du mois), choisissez Habituel, Une fois, Deux fois ou Décalage ; le bouton « Appliquer à lundi–vendredi » répercute le choix sur les autres jours de la semaine. Pour une absence (maladie, vacances, enfant malade, congés spéciaux, formation…), touchez « Poser une absence ou un congé », choisissez le type et la date de fin : toute la période est posée d’un coup.</li><li>Au tour du bus, si le bus est « À signaler » ou en cas d’incident, touchez « Envoyer à la maintenance » : indiquez une fois le numéro ou le mail de la maintenance, puis envoyez le constat par WhatsApp, SMS ou mail (les photos partent avec « Partager avec les photos »).</li><li>Dans Réglages, « Outils du chauffeur » : « Mon mémo » pour noter vos idées et cocher ce qui est fait, et « Guide bus et pannes » (réflexes en cas de panne, plus vos propres notices par bus). Dans l’Espace Équipe, l’onglet « Bus » permet de laisser une consigne aux collègues sur un bus (aussi depuis le Tour du bus), visible une semaine.</li><li>Dans l’assistant (bouton en haut à droite) : posez des questions sur votre planning, par exemple « Combien de repos secs dans l’année ? », « Combien de repos de 3 jours d’affilée ? », « Ma plus longue série de jours travaillés ? » ou « Combien de lundis, mardis… je travaille ? ». Un repos sec est un seul jour de repos entre deux jours non repos.</li><li>Dans le Bilan, « Bus conduits » et « Bus jour par jour » listent vos bus et leurs dates (utile en cas de litige). Dans Réglages, « Alerte tour du bus » crée un rappel dans le calendrier de votre téléphone avant chaque prise de service.</li><li>Dans Réglages, « Ma fiche » : ajoutez votre photo, votre téléphone, votre mail et une personne à prévenir en cas d’urgence (avec un bouton pour l’appeler). Ces informations restent dans votre application.</li><li>Onglet Contacts → « Espace Équipe » : avec le code donné par David, proposez ou consultez des échanges de services (à faire valider par Keolis ; en choisissant la date, votre service du jour se remplit tout seul), retrouvez l’annuaire commun, les infos partagées sur le dépôt, les annonces « Entre nous » et envoyez vos avis. Un QR code permet de partager une proposition ou d’inviter un collègue.</li><li>Ensuite, servez-vous-en chaque jour : notes, tour du bus, assistant, bilans, congés.</li></ol><div class="row" style="margin-top:10px"><button class="btn ghost" id="gobk">Aller à la zone de collage</button><button class="btn ghost" id="rewel">Revoir l’accueil</button></div></div>':'')+(TEMPLATE?'<div class="card"><h3 class="sec">Mon planning en photo</h3><p class="note" style="margin-bottom:10px">Pas envie de tout saisir ? Photographiez votre planning et envoyez-le à David : il remplit vos mois pour vous.</p><button class="btn" id="scanopen">Envoyer mon planning en photo</button></div>':'')+
     '<div class="card"><h3 class="sec">Congés et récupérations</h3><p class="note">Indiquez votre droit annuel en jours pour suivre ce qu’il vous reste. Laissez vide si vous ne voulez pas de compteur.</p>';
   allTypes().filter(function(t){return t.c==='CP'||t.c==='REC'||state.quota[t.c]!==undefined||countCode(t.c)>0||(state.types||[]).some(function(x){return x.c===t.c})}).forEach(function(t){
     h+='<div class="srow" style="display:grid;grid-template-columns:1fr 100px"><div><span class="chip">'+esc(t.l)+'</span><div class="note" style="font-size:11px;margin-top:3px">'+esc(t.c)+' · '+countCode(t.c)+' j posés</div></div><div><label for="q_'+esc(t.c)+'">Droit annuel</label><input id="q_'+esc(t.c)+'" type="number" inputmode="decimal" min="0" step="0.5" data-q="'+esc(t.c)+'" value="'+(state.quota[t.c]===undefined?'':esc(state.quota[t.c]))+'"></div></div>';
@@ -1918,11 +1918,13 @@ function nextPred(q){
   if(/service|travail|boulot/.test(q))return {f:function(c){return isService(c)},l:'service'};
   return null;
 }
-var HELP=['Je n’ai pas compris la question. Essayez par exemple :','« Quel service le 14 janvier ? »','« Combien de samedis je travaille en juin ? »','« Combien de week-ends je travaille ? »','« Poser ma journée du 14 janvier »','« Quel est mon prochain repos ? »'];
+var HELP=['Je n’ai pas compris la question. Essayez par exemple :','« Combien de repos secs dans l’année ? »','« Combien de repos de 3 jours d’affilée ? »','« Quelle est ma plus longue série de jours travaillés ? »','« Combien de lundis, mardis… je travaille ? »','« Quel service le 14 janvier ? »','« Combien de samedis je travaille en juin ? »','« Combien de week-ends je travaille ? »','« Poser ma journée du 14 janvier »','« Quel est mon prochain repos ? »'];
 function answer(raw){
   var q=norm(raw),when=parseWhen(q),np;
   if(/contact|numero|telephone|\btel\b|appeler|joindre|regulation|responsable|urgence/.test(q))return ansContacts(q);
   if(/^(peux tu |pouvez vous |je voudrais |j aimerais )?(que tu )?(me )?rappel/.test(q)||(/rappel/.test(q)&&!/\bpos\w*/.test(q)))return ansRemind(when,raw);
+  if(/repos sec|repos isole|jour de repos seul|(\bd affilee\b|\bconsecutif|\bde suite\b|\benchain|\bserie)/.test(q)&&/repos|travaill|service|boulot|bosse|jour/.test(q))return ansRuns(q);
+  if(/(par jour de la semaine|chaque jour de la semaine|repartition (par|des) jours|jour par jour de la semaine)/.test(q)||(/combien/.test(q)&&statDows(q).length>=3)||(/(bosse|travaill)/.test(q)&&/(tant de|combien de) (lundi|mardi)/.test(q)))return ansDowTable(q);
   var sd=statDows(q),swk=/week ?-?end|weekend|fin de semaine/.test(q),sp=statPred(q);
   if(/combien|nombre|compte|\btotal\b|quel mois|quels mois|le plus|le moins/.test(q)&&(sd.length||swk||sp&&(/repos|\brh\b|ddd|dispo|recup|travaill|service|boulot|\b209\b|\b313\b/.test(q)||/mois|semestre|trimestre|semaine|annee/.test(q)))&&!/heure/.test(q)){
     var sr=ansStats(q,sd,swk,sp);if(sr)return sr;
@@ -1992,6 +1994,58 @@ function statWeekends(per,q){
   else lines.push('Week-ends travaillés '+per.lab+' : '+(full.length+one.length)+' sur '+list.length+' (au moins un jour).');
   lines.push('Détail : '+full.length+' en entier'+ls(full)+', '+one.length+' avec un seul jour'+ls(one)+', '+free.length+' libre'+(free.length>1?'s':'')+'.');
   return {lines:lines,head:true,speak:lines[0]};
+}
+function runsOf(ks,f){
+  var out=[],cur=null;
+  ks.forEach(function(k,i){
+    if(f(k)){if(!cur)cur={a:k,b:k,n:0,edge:i===0};cur.b=k;cur.n++}
+    else if(cur){out.push(cur);cur=null}
+  });
+  if(cur){cur.edge=cur.edge||false;cur.endEdge=true;out.push(cur)}
+  return out;
+}
+function runLab(r){var a=mkDate(r.a),b=mkDate(r.b);return r.n===1?a.getDate()+' '+SHORT[a.getMonth()].toLowerCase():a.getDate()+(a.getMonth()!==b.getMonth()?' '+SHORT[a.getMonth()].toLowerCase():'')+'→'+b.getDate()+' '+SHORT[b.getMonth()].toLowerCase()}
+function ansRuns(q){
+  var per=statPeriod(q),ks=per.keys;
+  function isRest(k){var c=codeOf(k);return c==='R'||c==='RH'}
+  var all=monthKeys(0,11);function inPer(r){return r.a>=ks[0]&&r.a<=ks[ks.length-1]}
+  var rr=runsOf(all,isRest).filter(inPer),wr=runsOf(all,workedDay).filter(inPer);
+  var nm=q.match(/\b(\d{1,2}|deux|trois|quatre|cinq|six|sept) jours?\b/),NUM={deux:2,trois:3,quatre:4,cinq:5,six:6,sept:7},want=nm?(NUM[nm[1]]||+nm[1]):0;
+  var sec=rr.filter(function(r){return r.n===1}),d2=rr.filter(function(r){return r.n===2}),d3=rr.filter(function(r){return r.n===3}),d4=rr.filter(function(r){return r.n>=4});
+  function ls(a){return a.length&&a.length<=10?' ('+a.map(runLab).join(' ; ')+')':''}
+  var lines=[];
+  var workSeries=/(travaill|service|boulot|bosse)/.test(q)&&!/repos/.test(q);
+  if(workSeries){
+    var best=wr.slice().sort(function(a,b){return b.n-a.n})[0],lg=wr.filter(function(r){return r.n>=(want||6)});
+    lines.push('Séries de jours travaillés '+per.lab+' : '+wr.length+'.');
+    if(best)lines.push('La plus longue : '+best.n+' jour'+(best.n>1?'s':'')+' d’affilée ('+runLab(best)+').');
+    lines.push('Séries de '+(want||6)+' jours ou plus : '+lg.length+ls(lg)+'.');
+    return {lines:lines,head:true,speak:lines[0]};
+  }
+  if(want&&!/sec|isole/.test(q)){
+    var exact=rr.filter(function(r){return r.n===want}),more=rr.filter(function(r){return r.n>want});
+    lines.push('Repos de '+want+' jour'+(want>1?'s':'')+' d’affilée '+per.lab+' : '+exact.length+ls(exact)+'.');
+    lines.push('Repos plus longs : '+more.length+ls(more)+'.');
+  }else{
+    lines.push('Repos secs '+per.lab+' (un seul jour de repos entre deux jours non repos) : '+sec.length+ls(sec)+'.');
+  }
+  lines.push('Répartition des repos : '+sec.length+' repos sec'+(sec.length>1?'s':'')+', '+d2.length+' de 2 jours, '+d3.length+' de 3 jours, '+d4.length+' de 4 jours ou plus.');
+  var lr=rr.slice().sort(function(a,b){return b.n-a.n})[0];
+  if(lr)lines.push('Le plus long repos : '+lr.n+' jour'+(lr.n>1?'s':'')+' ('+runLab(lr)+').');
+  var wb=wr.slice().sort(function(a,b){return b.n-a.n})[0];
+  if(wb)lines.push('La plus longue série travaillée : '+wb.n+' jour'+(wb.n>1?'s':'')+' d’affilée ('+runLab(wb)+').');
+  lines.push('Ici « repos » = R ou RH ; les absences posées et les DDD ne comptent pas comme repos.');
+  return {lines:lines,head:true,speak:lines[0]};
+}
+function ansDowTable(q){
+  var per=statPeriod(q),order=[1,2,3,4,5,6,0],rows=[];
+  order.forEach(function(w){
+    var ks=per.keys.filter(function(k){return mkDate(k).getDay()===w}),wk=0,rs=0,ot=0;
+    ks.forEach(function(k){var c=codeOf(k);if(workedDay(k))wk++;else if(c==='R'||c==='RH')rs++;else ot++});
+    rows.push(DOW_PL[w].charAt(0).toUpperCase()+DOW_PL[w].slice(1)+' : '+wk+' travaillé'+(wk>1?'s':'')+', '+rs+' repos'+(ot?', '+ot+' autre'+(ot>1?'s':''):'')+' (sur '+ks.length+')');
+  });
+  var R=reportFor(per.keys);
+  return {lines:['Par jour de la semaine '+per.lab+' :'].concat(rows).concat(['Total : '+R.worked+' jours travaillés, '+R.rest+' repos.']),head:true,speak:'Voici la répartition par jour de la semaine.'};
 }
 function ansStats(q,dows,wk,pred){
   var per=statPeriod(q);
