@@ -432,6 +432,9 @@ nav button[aria-selected="true"]{color:#fff;transform:translateY(-3px);
 .arow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}.arow b{font-size:14px}
 .thseg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.thseg button{border:2px solid var(--line);background:var(--bg);color:var(--ink);border-radius:14px;padding:12px 6px;font-weight:800}
 .thseg button.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--card));color:var(--accent)}
+.avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;background:var(--empty-bg);display:grid;place-items:center;font-weight:800;font-size:22px;flex:none;color:var(--mute)}
+.fiche{display:flex;gap:12px;align-items:center}
+.fiche .fl{min-width:0;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
 .callbtn{width:46px;height:46px;border-radius:50%;background:#1f9d55;color:#fff;display:grid;place-items:center;box-shadow:0 3px 0 #167a41,var(--shadow);text-decoration:none;position:relative;flex:none}
 .callbtn svg{width:24px;height:24px;transition:transform .38s cubic-bezier(.3,1.5,.5,1);transform:rotate(0)}
 .callbtn.pick svg{transform:rotate(-40deg) translate(-1px,-2px) scale(1.12)}
@@ -620,7 +623,7 @@ function driveHtml(){return '<span class="drive">'+busSvg()+'</span>'}
 function setSaved(txt,ok){var e=document.getElementById('saved');if(!ok&&/^(Enregistrement|Chargement)/.test(txt))e.innerHTML=driveHtml()+txt;else e.textContent=txt;e.className=ok?'ok':''}
 function serialize(){return JSON.stringify({v:2,year:YEAR,days:state.days,svc:state.svc,contacts:state.contacts,rem:state.rem,quota:state.quota,types:state.types,profile:state.profile,plan:state.plan,hideWarn:state.hideWarn,theme:state.theme||'',alert:state.alert||0})}
 function applyData(txt){
-  try{var o=JSON.parse(txt);if(o&&o.days&&o.svc){state.days=o.days;state.svc=o.svc;state.contacts=Array.isArray(o.contacts)?o.contacts:null;state.rem=Array.isArray(o.rem)?o.rem:[];state.quota=o.quota||{};state.types=Array.isArray(o.types)?o.types:[];state.profile=(o.profile&&typeof o.profile==='object')?o.profile:{n:'',a:''};state.plan=(o.plan&&typeof o.plan==='object')?o.plan:{};state.hideWarn=!!o.hideWarn;state.theme=o.theme||state.theme||'';state.alert=+o.alert||state.alert||0;rebuildBase();return true}}catch(e){}
+  try{var o=JSON.parse(txt);if(o&&o.days&&o.svc){state.days=o.days;state.svc=o.svc;state.contacts=Array.isArray(o.contacts)?o.contacts:null;state.rem=Array.isArray(o.rem)?o.rem:[];state.quota=o.quota||{};state.types=Array.isArray(o.types)?o.types:[];state.profile=(o.profile&&typeof o.profile==='object')?Object.assign({},state.profile,o.profile):{n:'',a:''};state.plan=(o.plan&&typeof o.plan==='object')?o.plan:{};state.hideWarn=!!o.hideWarn;state.theme=o.theme||state.theme||'';state.alert=+o.alert||state.alert||0;rebuildBase();return true}}catch(e){}
   return false;
 }
 function rebuildBase(){if(!TEMPLATE)return;Object.keys(BASE).forEach(function(k){BASE[k]='-'});Object.keys(state.plan).forEach(function(k){if(k in BASE)BASE[k]=state.plan[k]})}
@@ -810,13 +813,15 @@ function viewServices(){
   codes.forEach(function(c){h+=svcRow(c,count[c]||0)});
   h+='</div><div class="card"><h3 class="sec">Ajouter un service</h3><div class="row"><input class="inp" id="newc" placeholder="ex. 11_209" style="flex:1;min-width:120px" aria-label="Code du nouveau service"><button class="btn" id="addc">Ajouter</button></div></div>';
   if(TEMPLATE)h='<div class="stack"><div class="card"><h3 class="sec">Mon roulement</h3><p class="note" style="margin-bottom:10px">'+esc(state.profile.n||'Profil à compléter')+(state.profile.a?' · Agent '+esc(state.profile.a):'')+'</p><div class="row"><button class="btn" id="fillopen">Saisir ou modifier mon roulement</button><button class="btn ghost" id="profopen">Mon profil</button></div></div>'+h.slice('<div class="stack">'.length);
+  h=h.replace('<div class="stack">','<div class="stack">'+ficheCard());
   h+=settingsCards()+'<div class="card"><h3 class="sec">Sauvegarde</h3><p class="note" style="margin-bottom:10px">Vos modifications, notes et horaires sont enregistrés automatiquement. Gardez une copie de sécurité si vous le souhaitez.</p>'+
     '<div class="row"><button class="btn ghost" id="bk">Afficher la sauvegarde</button><button class="btn ghost" id="cp">Copier</button><button class="btn ghost" id="dl">Télécharger</button></div>'+
     '<textarea class="inp" id="bkt" style="margin-top:10px" aria-label="Texte de sauvegarde" placeholder="Collez ici une sauvegarde pour la restaurer"></textarea>'+
     '<div class="row" style="margin-top:8px"><button class="btn danger" id="rs">Restaurer depuis ce texte</button></div><p class="note" id="bkm" style="margin-top:8px"></p></div><p class="note" style="text-align:center">© 2026 David Cramer · Application créée par David Cramer, conducteur Keolis. Copie, modification et revente interdites sans son accord.</p></div>';
   main.innerHTML=h;
   var fo=document.getElementById('fillopen');if(fo)fo.onclick=openFill;
-  var po=document.getElementById('profopen');if(po)po.onclick=openWelcome;
+  var po=document.getElementById('profopen');if(po)po.onclick=openFiche;
+  var fi=document.getElementById('fiche');if(fi)fi.onclick=openFiche;
   main.ontouchstart=main.ontouchend=null;main.onclick=null;
   main.onclick=function(e){
     var b=e.target.closest&&e.target.closest('.srow button');if(!b)return;
@@ -1444,7 +1449,7 @@ function settingsCards(){
   var h='<div class="card"><h3 class="sec">Apparence</h3><p class="note" style="margin-bottom:10px">Choisissez le mode qui vous repose les yeux.</p><div class="thseg">'+[['auto','Automatique'],['light','Clair'],['dark','Sombre']].map(function(o){var on=(state.theme||'auto')===o[0];return '<button data-th="'+o[0]+'" class="'+(on?'on':'')+'" aria-pressed="'+on+'">'+o[1]+'</button>'}).join('')+'</div></div>'+
     '<div class="card"><h3 class="sec">Alerte tour du bus</h3><p class="note" style="margin-bottom:10px">Un rappel sonne avant chaque prise de service, même appli fermée. Il est créé dans le calendrier de votre téléphone.</p><span class="lab">Combien de temps avant ?</span><div class="tags" id="alm">'+[15,30,45,60].map(function(n){return '<button type="button" data-al="'+n+'" aria-pressed="'+((state.alert||30)===n)+'">'+n+' min</button>'}).join('')+'</div><div class="row" style="margin-top:10px"><button class="btn" id="alics">Créer les alertes</button></div><p class="note" id="alm2" style="margin-top:8px"></p></div>'+
     '<div class="card"><h3 class="sec">Votre avis</h3><p class="note" style="margin-bottom:10px">Cette application évolue : notez chaque partie, dites ce que vous aimez, ce qui manque ou ce qui est en trop.</p><button class="btn" id="avisopen">Donner mon avis</button></div>'+
-    (TEMPLATE?'<div class="card"><h3 class="sec">Notice : comment ça marche</h3><ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Saisissez votre roulement vous-même (bouton « Saisir ou modifier mon roulement »)…</li><li>…ou photographiez votre planning et envoyez-le à David avec la carte « Mon planning en photo ».</li><li>David remplit vos mois et vous renvoie un texte de sauvegarde par message.</li><li>Copiez ce texte, puis collez-le dans la zone « Sauvegarde » en bas de cette page et touchez « Restaurer depuis ce texte » : votre planning apparaît.</li><li>Dans les horaires de vos services (Réglages), indiquez où vous commencez et finissez (dépôt ou station) et touchez « Service en deux parties » si vous reprenez après une coupure. Pour le week-end et les jours fériés, ajoutez des horaires différents sous le service. Sur la fiche d’une journée (calendrier du mois), choisissez Habituel, Une fois, Deux fois ou Décalage ; le bouton « Appliquer à lundi–vendredi » répercute le choix sur les autres jours de la semaine. Pour une absence (maladie, vacances, enfant malade, congés spéciaux, formation…), touchez « Poser une absence ou un congé », choisissez le type et la date de fin : toute la période est posée d’un coup.</li><li>Dans le Bilan, « Bus conduits » et « Bus jour par jour » listent vos bus et leurs dates (utile en cas de litige). Dans Réglages, « Alerte tour du bus » crée un rappel dans le calendrier de votre téléphone avant chaque prise de service.</li><li>Ensuite, servez-vous-en chaque jour : notes, tour du bus, assistant, bilans, congés.</li></ol><div class="row" style="margin-top:10px"><button class="btn ghost" id="gobk">Aller à la zone de collage</button><button class="btn ghost" id="rewel">Revoir l’accueil</button></div></div>':'')+(TEMPLATE?'<div class="card"><h3 class="sec">Mon planning en photo</h3><p class="note" style="margin-bottom:10px">Pas envie de tout saisir ? Photographiez votre planning et envoyez-le à David : il remplit vos mois pour vous.</p><button class="btn" id="scanopen">Envoyer mon planning en photo</button></div>':'')+
+    (TEMPLATE?'<div class="card"><h3 class="sec">Notice : comment ça marche</h3><ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Saisissez votre roulement vous-même (bouton « Saisir ou modifier mon roulement »)…</li><li>…ou photographiez votre planning et envoyez-le à David avec la carte « Mon planning en photo ».</li><li>David remplit vos mois et vous renvoie un texte de sauvegarde par message.</li><li>Copiez ce texte, puis collez-le dans la zone « Sauvegarde » en bas de cette page et touchez « Restaurer depuis ce texte » : votre planning apparaît.</li><li>Dans les horaires de vos services (Réglages), indiquez où vous commencez et finissez (dépôt ou station) et touchez « Service en deux parties » si vous reprenez après une coupure. Pour le week-end et les jours fériés, ajoutez des horaires différents sous le service. Sur la fiche d’une journée (calendrier du mois), choisissez Habituel, Une fois, Deux fois ou Décalage ; le bouton « Appliquer à lundi–vendredi » répercute le choix sur les autres jours de la semaine. Pour une absence (maladie, vacances, enfant malade, congés spéciaux, formation…), touchez « Poser une absence ou un congé », choisissez le type et la date de fin : toute la période est posée d’un coup.</li><li>Dans le Bilan, « Bus conduits » et « Bus jour par jour » listent vos bus et leurs dates (utile en cas de litige). Dans Réglages, « Alerte tour du bus » crée un rappel dans le calendrier de votre téléphone avant chaque prise de service.</li><li>Dans Réglages, « Ma fiche » : ajoutez votre photo, votre téléphone, votre mail et une personne à prévenir en cas d’urgence (avec un bouton pour l’appeler). Ces informations restent dans votre application.</li><li>Ensuite, servez-vous-en chaque jour : notes, tour du bus, assistant, bilans, congés.</li></ol><div class="row" style="margin-top:10px"><button class="btn ghost" id="gobk">Aller à la zone de collage</button><button class="btn ghost" id="rewel">Revoir l’accueil</button></div></div>':'')+(TEMPLATE?'<div class="card"><h3 class="sec">Mon planning en photo</h3><p class="note" style="margin-bottom:10px">Pas envie de tout saisir ? Photographiez votre planning et envoyez-le à David : il remplit vos mois pour vous.</p><button class="btn" id="scanopen">Envoyer mon planning en photo</button></div>':'')+
     '<div class="card"><h3 class="sec">Congés et récupérations</h3><p class="note">Indiquez votre droit annuel en jours pour suivre ce qu’il vous reste. Laissez vide si vous ne voulez pas de compteur.</p>';
   allTypes().filter(function(t){return t.c==='CP'||t.c==='REC'||state.quota[t.c]!==undefined||countCode(t.c)>0||(state.types||[]).some(function(x){return x.c===t.c})}).forEach(function(t){
     h+='<div class="srow" style="display:grid;grid-template-columns:1fr 100px"><div><span class="chip">'+esc(t.l)+'</span><div class="note" style="font-size:11px;margin-top:3px">'+esc(t.c)+' · '+countCode(t.c)+' j posés</div></div><div><label for="q_'+esc(t.c)+'">Droit annuel</label><input id="q_'+esc(t.c)+'" type="number" inputmode="decimal" min="0" step="0.5" data-q="'+esc(t.c)+'" value="'+(state.quota[t.c]===undefined?'':esc(state.quota[t.c]))+'"></div></div>';
@@ -1928,6 +1933,45 @@ document.getElementById('askbtn').onclick=openAsk;
 
 /* ---------- modèle : accueil + saisie du roulement ---------- */
 var fillM=0,fillBrush='R';
+function initials(n){var p=String(n||'').trim().split(/\s+/);return ((p[0]||'?').charAt(0)+(p[1]?p[1].charAt(0):'')).toUpperCase()}
+function avatarHtml(){var P=state.profile||{};return P.ph?'<img class="avatar" src="'+esc(P.ph)+'" alt="Ma photo">':'<span class="avatar" aria-hidden="true">'+esc(initials(P.n||(TEMPLATE?'':'David Cramer')))+'</span>'}
+function callBtnHtml(n,t){return '<a class="callbtn" href="'+esc(telHref(t))+'" data-cn="'+esc(n)+'" data-ct="'+esc(t)+'" aria-label="Appeler '+esc(n)+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25c1.1.37 2.3.57 3.6.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.6 21 3 13.4 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.6a1 1 0 0 1-.25 1z" fill="currentColor"/></svg></a>'}
+function ficheCard(){
+  var P=state.profile||{},nm=P.n||(TEMPLATE?'':'David Cramer');
+  var h='<div class="card"><h3 class="sec">Ma fiche</h3><div class="fiche">'+avatarHtml()+'<div class="fl"><b>'+(esc(nm)||'Fiche à compléter')+'</b>'+(P.a?' · agent '+esc(P.a):'')+(P.t?'<br>'+esc(P.t):'')+(P.m?'<br>'+esc(P.m):'')+'</div></div>';
+  if(P.un||P.ut)h+='<div class="busline" style="margin-top:10px;font-size:13px;font-weight:700;gap:10px"><span>Urgence : '+esc(P.un||'')+(P.ut?' · '+esc(P.ut):'')+'</span>'+(P.ut?callBtnHtml(P.un||'Contact d’urgence',P.ut):'')+'</div>';
+  return h+'<div class="row" style="margin-top:10px"><button class="btn" id="fiche">Modifier ma fiche</button></div></div>';
+}
+var fichePh=null;
+function openFiche(){
+  var P=state.profile||{};editK=null;fichePh=P.ph||'';
+  sheet.innerHTML='<h2 id="sheetTitle">Ma fiche</h2><p class="note">Ces informations restent dans votre application. Elles ne sont partagées que si vous copiez votre sauvegarde.</p>'+
+    '<div class="fiche"><span id="fav">'+avatarHtml()+'</span><div class="row" style="flex-direction:column;align-items:stretch;gap:6px"><button class="btn ghost" id="fph" type="button">Ajouter ou changer la photo</button><button class="btn ghost" id="fphx" type="button">Retirer la photo</button></div></div><input type="file" id="phfile" accept="image/*" hidden>'+
+    '<div><label class="lab" for="fn1">Prénom et nom</label><input class="inp" id="fn1" autocomplete="name" value="'+esc(P.n||(TEMPLATE?'':'David Cramer'))+'"></div>'+
+    '<div><label class="lab" for="fa1">Numéro d’agent (facultatif)</label><input class="inp" id="fa1" inputmode="numeric" value="'+esc(P.a||'')+'"></div>'+
+    '<div><label class="lab" for="ft1">Téléphone</label><input class="inp" id="ft1" type="tel" inputmode="tel" autocomplete="tel" value="'+esc(P.t||'')+'"></div>'+
+    '<div><label class="lab" for="fm1">Adresse mail</label><input class="inp" id="fm1" type="email" inputmode="email" autocomplete="email" value="'+esc(P.m||'')+'"></div>'+
+    '<div><span class="lab">Personne à prévenir en cas d’urgence</span><input class="inp" id="fu1" placeholder="Nom (ex. Marie, conjointe)" value="'+esc(P.un||'')+'" aria-label="Nom de la personne à prévenir"><input class="inp" id="fut" type="tel" inputmode="tel" placeholder="Téléphone" style="margin-top:6px" value="'+esc(P.ut||'')+'" aria-label="Téléphone de la personne à prévenir"></div>'+
+    '<div class="row"><button class="btn" id="fok" style="flex:1">Enregistrer</button><button class="btn ghost" id="fno">Fermer</button></div><p class="note" id="fmsg"></p>';
+  showVeil();
+  function av(){var e=document.getElementById('fav');if(!e)return;var save=state.profile.ph;state.profile.ph=fichePh;e.innerHTML=avatarHtml();state.profile.ph=save}
+  document.getElementById('fno').onclick=closeSheet;
+  document.getElementById('fph').onclick=function(){document.getElementById('phfile').click()};
+  document.getElementById('fphx').onclick=function(){fichePh='';av()};
+  document.getElementById('phfile').onchange=function(e){
+    var f=e.target.files&&e.target.files[0];if(!f)return;
+    var url=URL.createObjectURL(f),img=new Image();
+    img.onload=function(){var S=256,c=document.createElement('canvas');c.width=c.height=S;var m=Math.min(img.width,img.height),sx=(img.width-m)/2,sy=(img.height-m)/2;
+      c.getContext('2d').drawImage(img,sx,sy,m,m,0,0,S,S);URL.revokeObjectURL(url);fichePh=c.toDataURL('image/jpeg',0.8);av()};
+    img.onerror=function(){URL.revokeObjectURL(url);document.getElementById('fmsg').textContent='Photo illisible, essayez-en une autre.'};
+    img.src=url;e.target.value='';
+  };
+  document.getElementById('fok').onclick=function(){
+    var n=document.getElementById('fn1').value.trim();
+    state.profile=Object.assign({},state.profile,{n:n,a:document.getElementById('fa1').value.trim(),t:document.getElementById('ft1').value.trim(),m:document.getElementById('fm1').value.trim(),un:document.getElementById('fu1').value.trim(),ut:document.getElementById('fut').value.trim(),ph:fichePh});
+    scheduleSave();updateSub();closeSheet();render();
+  };
+}
 function openWelcome(){
   editK=null;
   sheet.innerHTML='<h2 id="sheetTitle">'+(state.profile.n?'Mon profil':'Bienvenue')+'</h2>'+
@@ -1942,7 +1986,7 @@ function openWelcome(){
     var n=document.getElementById('wn').value.trim();
     if(!n){document.getElementById('wm').textContent='Indiquez au moins votre prénom.';return}
     var first=!state.profile.n&&!Object.keys(state.plan).length;
-    state.profile={n:n,a:document.getElementById('wa').value.trim()};
+    state.profile=Object.assign({},state.profile,{n:n,a:document.getElementById('wa').value.trim()});
     scheduleSave();render();
     if(first){openChoice()}else closeSheet();
   };
